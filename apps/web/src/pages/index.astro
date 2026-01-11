@@ -1,11 +1,14 @@
 ---
-import Welcome from '../components/Welcome.astro';
-import Layout from '../layouts/Layout.astro';
+import { hc } from 'hono/client'
+import type { AppType } from 'api' // Imported from our workspace!
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+// Connect to the API running on port 3000
+const client = hc<AppType>('http://localhost:3000')
+
+// This call is fully typed. If you change the API, this errors!
+const res = await client.index.$get()
+const data = await res.json()
 ---
 
-<Layout>
-	<Welcome />
-</Layout>
+<h1>Astro + Hono</h1>
+<p>Message from API: {data.message}</p>

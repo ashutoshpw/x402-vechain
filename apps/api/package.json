@@ -1,11 +1,16 @@
 {
-  "name": "hono",
+  "name": "api",
   "type": "module",
-  "types":"./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "dev": "tsx watch src/dev.ts",
+    "build": "tsx src/index.ts"
+  },
   "dependencies": {
     "hono": "^4.11.3"
   },
   "devDependencies": {
+    "@hono/node-server": "^1.19.8",
     "@types/node": "^20.11.17",
     "tsx": "^4.7.1",
     "typescript": "^5.8.3"

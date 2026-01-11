@@ -21,6 +21,9 @@ importers:
         specifier: ^4.11.3
         version: 4.11.3
     devDependencies:
+      '@hono/node-server':
+        specifier: ^1.19.8
+        version: 1.19.8(hono@4.11.3)
       '@types/node':
         specifier: ^20.11.17
         version: 20.19.28
@@ -33,9 +36,15 @@ importers:
 
   apps/web:
     dependencies:
+      api:
+        specifier: workspace:*
+        version: link:../api
       astro:
         specifier: ^5.16.8
         version: 5.16.8(@types/node@20.19.28)(rollup@4.55.1)(tsx@4.21.0)(typescript@5.9.3)
+      hono:
+        specifier: ^4.11.3
+        version: 4.11.3
 
 packages:
 
@@ -391,6 +400,12 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@hono/node-server@1.19.8':
+    resolution: {integrity: sha512-0/g2lIOPzX8f3vzW1ggQgvG5mjtFBDBHFAzI5SFAi2DzSqS9luJwqg9T6O/gKYLi+inS7eNxBeIFkkghIPvrMA==}
+    engines: {node: '>=18.14.1'}
+    peerDependencies:
+      hono: ^4
 
   '@img/colour@1.0.0':
     resolution: {integrity: sha512-A5P/LfWGFSl6nsckYtjw9da+19jB8hkJ6ACTGcDfEJ0aE+l2n2El7dsVM7UVHZQ9s2lmYMWlrS21YLy2IR1LUw==}
@@ -1947,6 +1962,10 @@ snapshots:
 
   '@esbuild/win32-x64@0.27.2':
     optional: true
+
+  '@hono/node-server@1.19.8(hono@4.11.3)':
+    dependencies:
+      hono: 4.11.3
 
   '@img/colour@1.0.0':
     optional: true
