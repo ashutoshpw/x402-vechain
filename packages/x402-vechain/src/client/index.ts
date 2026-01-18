@@ -11,6 +11,7 @@ import type {
   CreatePaymentPayloadOptions,
   X402FetchOptions,
 } from '../types/index.js';
+import type { WalletAdapter } from './wallets.js';
 
 /**
  * Get crypto implementation (browser or Node.js)
@@ -104,6 +105,45 @@ export async function createPaymentPayload(
 }
 
 /**
+ * Create a signed payment payload using a wallet adapter
+ * 
+ * @param options Payment details
+ * @param wallet Wallet adapter instance (Connex, VeWorld, etc.)
+ * @returns Signed payment payload
+ */
+export async function createPaymentPayloadWithWallet(
+  options: CreatePaymentPayloadOptions,
+  wallet: WalletAdapter
+): Promise<PaymentPayload> {
+  const { network, recipient, amount, asset, validityDuration = 300 } = options;
+
+  // Calculate expiry timestamp
+  const validUntil = Math.floor(Date.now() / 1000) + validityDuration;
+
+  // Create payload
+  const payload: PaymentPayload['payload'] = {
+    scheme: 'exact',
+    network,
+    payTo: recipient,
+    amount,
+    asset,
+    nonce: generateNonce(),
+    validUntil,
+  };
+
+  // Hash the payload
+  const messageHash = hashPayload(payload);
+
+  // Sign with wallet
+  const signature = await wallet.signMessageHash(messageHash);
+
+  return {
+    signature,
+    payload,
+  };
+}
+
+/**
  * Enhanced fetch that handles x402 payment protocol
  * Automatically retries with payment when receiving 402 Payment Required
  * 
@@ -118,6 +158,8 @@ export async function x402Fetch(
   const {
     facilitatorUrl,
     onPaymentRequired,
+    wallet,
+    maxAmount,
     maxRetries = 1,
     ...fetchOptions
   } = options;
@@ -126,7 +168,7 @@ export async function x402Fetch(
   let response = await fetch(url, fetchOptions);
 
   // Check for 402 Payment Required
-  if (response.status === 402 && onPaymentRequired) {
+  if (response.status === 402) {
     const paymentHeader = response.headers.get('X-Payment-Required');
     
     if (!paymentHeader) {
@@ -141,8 +183,46 @@ export async function x402Fetch(
       throw new Error(`Failed to parse payment requirements: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
-    // Request payment payload from application
-    const paymentPayload = await onPaymentRequired(requirements);
+    // Validate max amount if provided
+    if (maxAmount && requirements.paymentOptions.length > 0) {
+      const requestedAmount = BigInt(requirements.paymentOptions[0].amount);
+      const maxAmountBigInt = BigInt(maxAmount);
+      
+      if (requestedAmount > maxAmountBigInt) {
+        throw new Error(
+          `Payment amount ${requirements.paymentOptions[0].amount} exceeds maximum allowed ${maxAmount}`
+        );
+      }
+    }
+
+    let paymentPayload: PaymentPayload;
+
+    // Handle payment creation
+    if (wallet) {
+      // Use wallet adapter to sign payment
+      const option = requirements.paymentOptions[0];
+      if (!option) {
+        throw new Error('No payment options provided in requirements');
+      }
+
+      paymentPayload = await createPaymentPayloadWithWallet(
+        {
+          network: option.network,
+          recipient: option.recipient,
+          amount: option.amount,
+          asset: option.asset,
+        },
+        wallet
+      );
+    } else if (onPaymentRequired) {
+      // Use custom payment handler
+      paymentPayload = await onPaymentRequired(requirements);
+    } else {
+      throw new Error(
+        'Payment required but no wallet or onPaymentRequired handler provided. ' +
+        'Please provide either a wallet adapter or onPaymentRequired callback.'
+      );
+    }
 
     // Encode payment payload as base64
     const encodedPayload = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
@@ -211,3 +291,13 @@ export async function getSupported(facilitatorUrl: string) {
 
   return response.json();
 }
+
+// Re-export wallet utilities
+export {
+  type WalletAdapter,
+  ConnexWalletAdapter,
+  VeWorldWalletAdapter,
+  PrivateKeyWalletAdapter,
+  detectWallets,
+  autoDetectWallet,
+} from './wallets.js';

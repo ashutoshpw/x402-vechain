@@ -21,9 +21,17 @@ export type {
 // Re-export client functions
 export {
   createPaymentPayload,
+  createPaymentPayloadWithWallet,
   x402Fetch,
   getSupported,
   generateNonce,
+  // Wallet adapters
+  type WalletAdapter,
+  ConnexWalletAdapter,
+  VeWorldWalletAdapter,
+  PrivateKeyWalletAdapter,
+  detectWallets,
+  autoDetectWallet,
 } from './client/index.js';
 
 // Re-export server functions and types

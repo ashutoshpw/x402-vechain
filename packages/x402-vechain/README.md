@@ -16,39 +16,26 @@ yarn add @x402/vechain
 
 - 🔐 **Type-safe**: Full TypeScript support with complete type definitions
 - 🌐 **Client SDK**: Browser wallet integration with automatic payment handling
+- 💼 **Wallet Support**: VeWorld, Connex (Sync/Sync2), and auto-detection
 - 🖥️ **Server SDK**: Hono middleware for payment verification
 - ⚡ **x402 Protocol**: Implements the x402 payment protocol specification
 - 🔗 **VeChain Native**: Built specifically for VeChain blockchain
 
 ## Quick Start
 
-### Client Usage (Browser)
+### Client Usage (Browser with Wallet)
 
 ```typescript
-import { x402Fetch, createPaymentPayload } from '@x402/vechain';
+import { x402Fetch, autoDetectWallet } from '@x402/vechain';
+
+// Auto-detect VeWorld or Connex wallet
+const wallet = autoDetectWallet();
 
 // Make a request with automatic payment handling
 const response = await x402Fetch('https://api.example.com/premium-content', {
   facilitatorUrl: 'https://facilitator.example.com',
-  onPaymentRequired: async (requirements) => {
-    // Create payment payload when payment is required
-    // In a real app, you would:
-    // 1. Show payment UI to user
-    // 2. Get user's private key from wallet (e.g., VeChain Sync, VeWorld)
-    // 3. Create and return signed payment payload
-    
-    const paymentOption = requirements.paymentOptions[0];
-    
-    return await createPaymentPayload(
-      {
-        network: paymentOption.network,
-        recipient: paymentOption.recipient,
-        amount: paymentOption.amount,
-        asset: paymentOption.asset,
-      },
-      userPrivateKey // From wallet
-    );
-  },
+  wallet, // Wallet will automatically sign payment when required
+  maxAmount: '1000000000000000000', // Max 1 VET
 });
 
 const data = await response.json();
@@ -89,13 +76,148 @@ app.get('/premium/content', (c) => {
 export default app;
 ```
 
+## Wallet Integration
+
+The SDK provides first-class support for VeChain wallets with automatic payment signing.
+
+### Auto-Detect Wallet
+
+```typescript
+import { x402Fetch, autoDetectWallet } from '@x402/vechain';
+
+// Automatically detect and connect to VeWorld or Connex
+const wallet = autoDetectWallet();
+
+if (wallet) {
+  const response = await x402Fetch('https://api.example.com/premium', {
+    facilitatorUrl: 'https://facilitator.example.com',
+    wallet, // Payment automatically signed by wallet
+    maxAmount: '1000000000000000000', // Optional: Max 1 VET
+  });
+}
+```
+
+### VeWorld Wallet
+
+```typescript
+import { x402Fetch, VeWorldWalletAdapter } from '@x402/vechain';
+
+// Create VeWorld wallet adapter
+const wallet = new VeWorldWalletAdapter();
+
+// Connect to wallet
+await wallet.connect();
+
+// Use with x402Fetch
+const response = await x402Fetch('https://api.example.com/premium', {
+  facilitatorUrl: 'https://facilitator.example.com',
+  wallet,
+});
+```
+
+### Connex Wallet (VeChain Sync/Sync2)
+
+```typescript
+import { x402Fetch, ConnexWalletAdapter } from '@x402/vechain';
+
+// Use window.connex (automatically available in VeChain Sync)
+const wallet = new ConnexWalletAdapter();
+
+// Or provide your own Connex instance
+// const connex = new Connex({ node: '...', network: 'test' });
+// const wallet = new ConnexWalletAdapter(connex);
+
+const response = await x402Fetch('https://api.example.com/premium', {
+  facilitatorUrl: 'https://facilitator.example.com',
+  wallet,
+});
+```
+
+### Detect Available Wallets
+
+```typescript
+import { detectWallets } from '@x402/vechain';
+
+// Returns array of available wallet types: ['veworld', 'connex']
+const availableWallets = detectWallets();
+
+if (availableWallets.includes('veworld')) {
+  console.log('VeWorld is available');
+}
+```
+
+### Custom Payment Handler with Wallet
+
+For more control over the payment flow (e.g., showing a confirmation UI):
+
+```typescript
+import { x402Fetch, createPaymentPayloadWithWallet, autoDetectWallet } from '@x402/vechain';
+
+const wallet = autoDetectWallet();
+
+const response = await x402Fetch('https://api.example.com/premium', {
+  facilitatorUrl: 'https://facilitator.example.com',
+  onPaymentRequired: async (requirements) => {
+    // Show payment UI
+    const confirmed = await showPaymentDialog(requirements);
+    
+    if (!confirmed) {
+      throw new Error('Payment cancelled by user');
+    }
+    
+    // Use wallet to sign payment
+    const option = requirements.paymentOptions[0];
+    return await createPaymentPayloadWithWallet(
+      {
+        network: option.network,
+        recipient: option.recipient,
+        amount: option.amount,
+        asset: option.asset,
+      },
+      wallet
+    );
+  },
+});
+```
+
 ## API Reference
 
 ### Client Functions
 
+#### `createPaymentPayloadWithWallet(options, wallet)`
+
+Creates a signed payment payload using a wallet adapter.
+
+**Parameters:**
+- `options: CreatePaymentPayloadOptions`
+  - `network: string` - CAIP-2 network identifier (e.g., 'eip155:100009')
+  - `recipient: string` - Payment recipient address
+  - `amount: string` - Amount in wei
+  - `asset: string` - Asset identifier ('VET', 'VTHO', or token address)
+  - `validityDuration?: number` - Validity period in seconds (default: 300)
+- `wallet: WalletAdapter` - Wallet adapter instance (VeWorld, Connex, etc.)
+
+**Returns:** `Promise<PaymentPayload>`
+
+**Example:**
+```typescript
+import { createPaymentPayloadWithWallet, VeWorldWalletAdapter } from '@x402/vechain';
+
+const wallet = new VeWorldWalletAdapter();
+const payload = await createPaymentPayloadWithWallet(
+  {
+    network: 'eip155:100009',
+    recipient: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+    amount: '1000000000000000000',
+    asset: 'VET',
+  },
+  wallet
+);
+```
+
 #### `createPaymentPayload(options, privateKey)`
 
-Creates a signed payment payload for the x402 protocol.
+Creates a signed payment payload for the x402 protocol (development/testing).
 
 **Parameters:**
 - `options: CreatePaymentPayloadOptions`
@@ -130,7 +252,9 @@ Enhanced fetch function with automatic x402 payment handling.
 - `url: string` - Request URL
 - `options: X402FetchOptions`
   - `facilitatorUrl: string` - URL of x402 facilitator
-  - `onPaymentRequired?: (requirements: PaymentRequirements) => Promise<PaymentPayload>` - Payment handler
+  - `wallet?: WalletAdapter` - Wallet adapter for automatic payment signing
+  - `onPaymentRequired?: (requirements: PaymentRequirements) => Promise<PaymentPayload>` - Custom payment handler
+  - `maxAmount?: string` - Maximum payment amount in wei
   - `maxRetries?: number` - Maximum retry attempts (default: 1)
   - Plus all standard `fetch` options
 
@@ -138,16 +262,19 @@ Enhanced fetch function with automatic x402 payment handling.
 
 **Example:**
 ```typescript
+import { x402Fetch, autoDetectWallet } from '@x402/vechain';
+
+const wallet = autoDetectWallet();
+
 const response = await x402Fetch('https://api.example.com/data', {
   facilitatorUrl: 'https://facilitator.example.com',
+  wallet,
+  maxAmount: '1000000000000000000', // Max 1 VET
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
   },
   body: JSON.stringify({ query: 'test' }),
-  onPaymentRequired: async (requirements) => {
-    return await createPaymentPayload(/* ... */);
-  },
 });
 ```
 
@@ -172,7 +299,115 @@ Generates a cryptographically secure random nonce for payment payloads.
 
 **Returns:** `string` - 32-byte hex string
 
-### Server Functions
+### Wallet Adapters
+
+#### `autoDetectWallet()`
+
+Auto-detect and create a wallet adapter from available wallets in the browser.
+Prioritizes VeWorld, then Connex.
+
+**Returns:** `WalletAdapter | null`
+
+**Example:**
+```typescript
+import { autoDetectWallet } from '@x402/vechain';
+
+const wallet = autoDetectWallet();
+if (wallet) {
+  const address = await wallet.getAddress();
+  console.log('Connected:', address);
+}
+```
+
+#### `detectWallets()`
+
+Detect which VeChain wallets are available in the browser.
+
+**Returns:** `string[]` - Array of wallet types: `['veworld', 'connex']`
+
+**Example:**
+```typescript
+import { detectWallets } from '@x402/vechain';
+
+const wallets = detectWallets();
+console.log('Available wallets:', wallets);
+// Output: ['veworld', 'connex']
+```
+
+#### `ConnexWalletAdapter`
+
+Wallet adapter for Connex (VeChain Sync, Sync2).
+
+**Constructor:**
+- `new ConnexWalletAdapter(connex?: any)` - Uses `window.connex` if not provided
+
+**Methods:**
+- `getAddress(): Promise<string>` - Get connected wallet address
+- `signMessageHash(messageHash: Uint8Array): Promise<string>` - Sign a message hash
+- `isConnected(): Promise<boolean>` - Check connection status
+
+**Example:**
+```typescript
+import { ConnexWalletAdapter } from '@x402/vechain';
+
+const wallet = new ConnexWalletAdapter();
+const address = await wallet.getAddress();
+```
+
+#### `VeWorldWalletAdapter`
+
+Wallet adapter for VeWorld browser extension and mobile app.
+
+**Constructor:**
+- `new VeWorldWalletAdapter()` - Uses `window.vechain`
+
+**Methods:**
+- `connect(): Promise<void>` - Connect to VeWorld
+- `getAddress(): Promise<string>` - Get connected wallet address
+- `signMessageHash(messageHash: Uint8Array): Promise<string>` - Sign a message hash
+- `isConnected(): Promise<boolean>` - Check connection status
+
+**Example:**
+```typescript
+import { VeWorldWalletAdapter } from '@x402/vechain';
+
+const wallet = new VeWorldWalletAdapter();
+await wallet.connect();
+const address = await wallet.getAddress();
+```
+
+#### `PrivateKeyWalletAdapter`
+
+Wallet adapter using a private key (for development/testing only).
+
+**Constructor:**
+- `new PrivateKeyWalletAdapter(privateKey: string)` - Hex-encoded private key
+
+**Methods:**
+- `getAddress(): Promise<string>` - Get address derived from private key
+- `signMessageHash(messageHash: Uint8Array): Promise<string>` - Sign with private key
+- `isConnected(): Promise<boolean>` - Always returns true
+
+**Example:**
+```typescript
+import { PrivateKeyWalletAdapter } from '@x402/vechain';
+
+// WARNING: Only for development!
+const wallet = new PrivateKeyWalletAdapter(process.env.PRIVATE_KEY);
+const address = await wallet.getAddress();
+```
+
+#### `WalletAdapter` (Interface)
+
+Base interface for all wallet adapters. Implement this to create custom wallet integrations.
+
+**Methods:**
+- `getAddress(): Promise<string>`
+- `signMessageHash(messageHash: Uint8Array): Promise<string>`
+- `isConnected(): Promise<boolean>`
+- `connect?(): Promise<void>` (optional)
+
+
 
 #### `paymentMiddleware(options)`
 
