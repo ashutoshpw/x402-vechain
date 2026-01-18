@@ -257,8 +257,9 @@ async function main() {
   await agent.start();
 }
 
-// Run if executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Run if executed directly (cross-platform compatible check)
+const scriptPath = process.argv[1] ? new URL(process.argv[1], 'file:').href : '';
+if (import.meta.url === scriptPath) {
   main().catch((error) => {
     console.error('Fatal error:', error);
     process.exit(1);

@@ -250,6 +250,7 @@ app.use('/articles/:id', async (c, next) => {
         paymentOptions: [{
           network: 'eip155:100009', // VeChain testnet
           asset: article.token,
+          // NOTE: Assuming 18 decimals for all tokens (VET, VTHO, VEUSD, B3TR all use 18 decimals)
           amount: (parseFloat(article.price) * 1e18).toString(),
           recipient: MERCHANT_ADDRESS,
         }],
