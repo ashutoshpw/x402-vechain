@@ -1,87 +1,43 @@
 import { Hono, type Context } from 'hono'
 import { cors } from 'hono/cors'
+import { errorHandler } from './middleware/errorHandler.js'
+import { rateLimiter } from './middleware/rateLimiter.js'
+import x402Routes from './routes/x402.js'
 
 const app = new Hono()
 
-app.use('/*', cors())
+// CORS configuration - Allow specific origins or all origins
+// In production, replace '*' with specific allowed origins
+app.use('/*', cors({
+  origin: '*',
+  allowMethods: ['GET', 'POST', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization'],
+  exposeHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
+  maxAge: 86400, // 24 hours
+}))
 
-const supportedTokens = [
-  { symbol: 'VET', name: 'VeChain Token' },
-  { symbol: 'VTHO', name: 'VeThor Token' },
-  { symbol: 'VEUSD', name: 'VeUSD' },
-  { symbol: 'B3TR', name: 'B3TR' }
-]
+// Apply rate limiting to all routes
+app.use('/*', rateLimiter())
 
-const supportedNetworks = [
-  {
-    name: 'VeChain Mainnet',
-    caip2: 'vechain:100010',
-    tokens: supportedTokens
-  }
-]
-
-type JsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | JsonValue[]
-  | { [key: string]: JsonValue }
-
-const parseJsonBody = async (
-  c: Context
-): Promise<{ error?: string; value?: JsonValue }> => {
-  try {
-    const value = await c.req.json()
-    return { value }
-  } catch (error) {
-    return {
-      error: error instanceof Error ? error.message : 'Invalid JSON body'
-    }
-  }
-}
-
-const validateJsonObjectBody = async (c: Context): Promise<Response | null> => {
-  const { error, value } = await parseJsonBody(c)
-  if (error) {
-    return c.json({ error }, 400)
-  }
-  if (value == null || typeof value !== 'object' || Array.isArray(value)) {
-    return c.json({ error: 'Expected a JSON object body' }, 400)
-  }
-  return null
-}
-
-app.get('/supported', (c) => {
-  return c.json({ networks: supportedNetworks })
+// Root endpoint
+app.get('/', (c) => {
+  return c.json({ 
+    message: 'x402 VeChain Facilitator API',
+    version: '1.0.0',
+    endpoints: [
+      'POST /verify',
+      'POST /settle',
+      'GET /supported'
+    ]
+  })
 })
 
-app.post('/verify', async (c) => {
-  const validationResponse = await validateJsonObjectBody(c)
-  if (validationResponse) {
-    return validationResponse
-  }
-  return c.json({
-    verified: false,
-    reason: 'x402 verification is not implemented yet'
-  }, 501)
-})
+// Mount x402 routes
+app.route('/', x402Routes)
 
-app.post('/settle', async (c) => {
-  const validationResponse = await validateJsonObjectBody(c)
-  if (validationResponse) {
-    return validationResponse
-  }
-  return c.json({
-    settled: false,
-    reason: 'x402 settlement is not implemented yet'
-  }, 501)
-})
+// Error handling
+app.onError(errorHandler)
 
-const routes = app.get('/', (c) => {
-  return c.json({ message: 'Hello from Hono!' })
-})
-
-export type AppType = typeof routes
+export type AppType = typeof app
 
 export default app
