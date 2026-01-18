@@ -43,6 +43,42 @@ const data = await response.json();
 
 ### Server Usage (Hono)
 
+**New Simplified API (Recommended):**
+
+```typescript
+import { Hono } from 'hono';
+import { paymentMiddleware } from '@x402/vechain';
+
+const app = new Hono();
+
+// Route-based payment configuration - the easiest way!
+app.use(paymentMiddleware({
+  "GET /api/premium": {
+    price: "0.01",      // Simple decimal price
+    token: "VET",       // Token symbol
+    network: "vechain:100009",  // VeChain testnet
+    payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+    facilitatorUrl: "https://facilitator.example.com"
+  },
+  "POST /api/data": {
+    price: "0.05",
+    token: "VEUSD",
+    network: "vechain:100009",
+    payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+    facilitatorUrl: "https://facilitator.example.com"
+  }
+}));
+
+// Protected routes - automatically require payment
+app.get('/api/premium', (c) => {
+  return c.json({ data: 'Premium content' });
+});
+
+export default app;
+```
+
+**Traditional API (Still supported):**
+
 ```typescript
 import { Hono } from 'hono';
 import { paymentMiddleware } from '@x402/vechain';
@@ -407,11 +443,85 @@ Base interface for all wallet adapters. Implement this to create custom wallet i
 - `isConnected(): Promise<boolean>`
 - `connect?(): Promise<void>` (optional)
 
-
+### Server Functions
 
 #### `paymentMiddleware(options)`
 
-Hono middleware for x402 payment verification.
+Hono middleware for x402 payment verification. Supports two usage patterns:
+
+**Route-Based Configuration (New, Simplified):**
+
+```typescript
+app.use(paymentMiddleware({
+  "GET /api/premium": {
+    price: "0.01",
+    token: "VET",
+    network: "vechain:100009",
+    payTo: "0xYourWallet...",
+    facilitatorUrl: "https://facilitator.example.com"  // Optional per-route
+  }
+}));
+```
+
+**Parameters (Route-Based):**
+- Route pattern as key (e.g., `"GET /api/premium"`, `"/api/*"`)
+- Config object:
+  - `price: string` - Price in token units (e.g., "0.01" for 0.01 VET)
+  - `token: string` - Token symbol (VET, VTHO, VEUSD, B3TR, or contract address)
+  - `network: string` - Network ID (`vechain:100009` or `eip155:100009`)
+  - `payTo: string` - Payment recipient address
+  - `merchantId?: string` - Optional merchant identifier
+  - `merchantUrl?: string` - Optional merchant website
+  - `facilitatorUrl?: string` - Optional per-route facilitator URL
+
+**Route Pattern Matching:**
+- **Method + Path**: `"GET /api/premium"` - matches exact method and path
+- **Path only**: `"/api/premium"` - matches any method for that path
+- **Wildcards**: `"GET /api/*"` - matches all GET requests under /api/
+- **Path params**: `"GET /api/:id"` - matches parameterized paths
+
+**Traditional Configuration (Full Control):**
+
+```typescript
+app.use('/route', paymentMiddleware({
+  getPaymentRequirements: (c) => ({ ... }),
+  facilitatorUrl: "https://...",
+  verifyPayment: async (payload, requirements) => ({ ... }),
+  onPaymentVerified: async (c, verification) => { ... }
+}));
+```
+
+**Parameters (Traditional):**
+- `options: PaymentMiddlewareOptions`
+  - `getPaymentRequirements: (c: Context) => PaymentRequirements | Promise<PaymentRequirements>` - Function to generate payment requirements
+  - `verifyPayment?: (payload: PaymentPayload, requirements: PaymentRequirements) => Promise<PaymentVerification>` - Custom verification function
+  - `onPaymentVerified?: (c: Context, verification: PaymentVerification) => void | Promise<void>` - Success callback
+  - `facilitatorUrl?: string` - URL to delegate verification to facilitator
+
+**Enhanced Configuration (Best of Both):**
+
+```typescript
+app.use(paymentMiddleware({
+  routes: {
+    "GET /api/premium": { price: "0.01", token: "VET", ... }
+  },
+  facilitatorUrl: "https://...",  // Default for all routes
+  onPaymentVerified: async (c, verification) => {
+    // Called for all verified payments
+  }
+}));
+```
+
+**Returns:** `MiddlewareHandler`
+
+**Behavior:**
+1. Checks for `X-Payment-Proof` header in requests
+2. If missing, returns `402 Payment Required` with `X-Payment-Required` header
+3. If present, verifies payment against requirements
+4. If valid, calls `onPaymentVerified` and continues to route handler
+5. If invalid, returns `403 Forbidden`
+
+**Example:**
 
 **Parameters:**
 - `options: PaymentMiddlewareOptions`
@@ -422,8 +532,26 @@ Hono middleware for x402 payment verification.
 
 **Returns:** `MiddlewareHandler`
 
+**Behavior:**
+1. Checks for `X-Payment-Proof` header in requests
+2. If missing, returns `402 Payment Required` with `X-Payment-Required` header
+3. If present, verifies payment against requirements
+4. If valid, calls `onPaymentVerified` and continues to route handler
+5. If invalid, returns `403 Forbidden`
+
 **Example:**
 ```typescript
+// Route-based (recommended for simple cases)
+app.use(paymentMiddleware({
+  "GET /api/*": {
+    price: "0.01",
+    token: "VET",
+    network: "vechain:100009",
+    payTo: process.env.MERCHANT_ADDRESS,
+  }
+}));
+
+// Traditional (more control)
 app.use('/api/*', paymentMiddleware({
   facilitatorUrl: 'https://facilitator.example.com',
   getPaymentRequirements: (c) => {
