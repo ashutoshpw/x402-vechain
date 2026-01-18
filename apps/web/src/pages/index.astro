@@ -1,4 +1,5 @@
 ---
+import Layout from '../layouts/Layout.astro';
 import { hc } from 'hono/client'
 import type { AppType } from 'api' // Imported from our workspace!
 
@@ -6,9 +7,76 @@ import type { AppType } from 'api' // Imported from our workspace!
 const client = hc<AppType>('http://localhost:3000')
 
 // This call is fully typed. If you change the API, this errors!
-const res = await client.index.$get()
-const data = await res.json()
+let data = { message: 'x402 VeChain Facilitator' };
+try {
+  const res = await client.index.$get()
+  data = await res.json()
+} catch (e) {
+  console.log('API not running, using default message');
+}
 ---
 
-<h1>Astro + Hono</h1>
-<p>Message from API: {data.message}</p>
+<Layout>
+  <div class="home-container">
+    <h1>x402 VeChain</h1>
+    <p class="subtitle">Payment Protocol for VeChain</p>
+    
+    <div class="api-status">
+      <p><strong>API Status:</strong> {data.message}</p>
+    </div>
+
+    <a href="/playground" class="playground-link">
+      🎮 Open Payment Playground →
+    </a>
+  </div>
+</Layout>
+
+<style>
+  .home-container {
+    max-width: 800px;
+    margin: 4rem auto;
+    padding: 2rem;
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  h1 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+
+  .subtitle {
+    font-size: 1.2rem;
+    color: #666;
+    margin-bottom: 3rem;
+  }
+
+  .api-status {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+
+  .api-status p {
+    margin: 0;
+  }
+
+  .playground-link {
+    display: inline-block;
+    background: #2196f3;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 1.1rem;
+    font-weight: 500;
+    transition: background 0.2s;
+  }
+
+  .playground-link:hover {
+    background: #1976d2;
+  }
+</style>
