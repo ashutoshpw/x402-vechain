@@ -1,4 +1,4 @@
-import { Hono } from 'hono'
+import { Hono, type Context } from 'hono'
 import { cors } from 'hono/cors'
 import { errorHandler } from './middleware/errorHandler.js'
 import { rateLimiter } from './middleware/rateLimiter.js'
