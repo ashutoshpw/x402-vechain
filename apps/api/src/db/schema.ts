@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, jsonb, bigint, index, uniqueIndex } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, text, timestamp, boolean, jsonb, bigint, integer, index, uniqueIndex } from 'drizzle-orm/pg-core'
 
 /**
  * Users table - Stores wallet addresses and user profiles
@@ -23,10 +23,14 @@ export const apiKeys = pgTable('api_keys', {
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 255 }).notNull(),
   keyHash: varchar('key_hash', { length: 255 }).notNull().unique(),
+  keyPrefix: varchar('key_prefix', { length: 8 }).notNull(), // First 8 chars for display (e.g., 'xv_abc12')
   permissions: jsonb('permissions').default([]).notNull(), // Array of permission strings
+  rateLimit: integer('rate_limit').default(1000).notNull(), // Requests per hour
+  allowedDomains: jsonb('allowed_domains').default([]).notNull(), // Array of allowed CORS domains
   isActive: boolean('is_active').default(true).notNull(),
   expiresAt: timestamp('expires_at'),
   lastUsedAt: timestamp('last_used_at'),
+  revokedAt: timestamp('revoked_at'), // When the key was revoked
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({

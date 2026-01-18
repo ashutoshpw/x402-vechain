@@ -1,7 +1,11 @@
 import type { Config } from 'drizzle-kit'
-import { getDatabaseUrl } from './src/config/env.js'
+import { config } from 'dotenv'
 
-const connectionString = getDatabaseUrl()
+// Load environment variables
+config()
+
+// Get database URL from environment
+const connectionString = process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/x402_testnet'
 
 export default {
   schema: './src/db/schema.ts',

@@ -3,6 +3,7 @@ import { cors } from 'hono/cors'
 import { errorHandler } from './middleware/errorHandler.js'
 import { rateLimiter } from './middleware/rateLimiter.js'
 import x402Routes from './routes/x402.js'
+import apiKeyRoutes from './routes/apiKeys.js'
 
 const app = new Hono()
 
@@ -10,8 +11,8 @@ const app = new Hono()
 // In production, replace '*' with specific allowed origins
 app.use('/*', cors({
   origin: '*',
-  allowMethods: ['GET', 'POST', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
+  allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-User-ID'],
   exposeHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
   maxAge: 86400, // 24 hours
 }))
@@ -27,13 +28,21 @@ app.get('/', (c) => {
     endpoints: [
       'POST /verify',
       'POST /settle',
-      'GET /supported'
+      'GET /supported',
+      'GET /api/keys',
+      'POST /api/keys',
+      'PATCH /api/keys/:id',
+      'DELETE /api/keys/:id',
+      'GET /api/keys/:id/stats'
     ]
   })
 })
 
 // Mount x402 routes
 app.route('/', x402Routes)
+
+// Mount API key management routes
+app.route('/api/keys', apiKeyRoutes)
 
 // Error handling
 app.onError(errorHandler)
