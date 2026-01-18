@@ -38,20 +38,31 @@ const envSchema = z.object({
     .describe('Enable fee delegation for transactions'),
   
   FEE_DELEGATION_PRIVATE_KEY: z
-    .string()
+    .union([
+      z.string().regex(/^0x[a-fA-F0-9]{64}$/, 'Must be a valid hex private key starting with 0x (66 characters total)'),
+      z.literal(''),
+      z.undefined()
+    ])
     .optional()
     .describe('Private key for fee delegation sponsor account'),
 
   // Database Configuration
   DATABASE_URL: z
-    .string()
+    .union([
+      z.string().regex(/^postgresql:\/\/.+/, 'Must be a valid PostgreSQL connection URL starting with postgresql://'),
+      z.literal(''),
+      z.undefined()
+    ])
     .optional()
     .describe('PostgreSQL database connection URL'),
 
   // Authentication Configuration
   JWT_SECRET: z
-    .string()
-    .min(32, 'JWT secret must be at least 32 characters')
+    .union([
+      z.string().min(32, 'JWT secret must be at least 32 characters'),
+      z.literal(''),
+      z.undefined()
+    ])
     .optional()
     .describe('Secret key for signing JWT tokens'),
 
