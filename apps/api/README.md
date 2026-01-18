@@ -197,8 +197,97 @@ src/
 
 ## Environment Configuration
 
-The API uses environment variables for configuration:
-- `NODE_ENV`: Set to 'test' to disable rate limit cleanup
+The API requires proper environment configuration. Copy `.env.example` to `.env` and configure the variables:
+
+```bash
+cp .env.example .env
+```
+
+### Environment Variables
+
+All environment variables are validated using Zod schemas. The application will fail to start if required variables are missing or invalid.
+
+#### VeChain Network Configuration
+
+- **`VECHAIN_NETWORK`** (required)
+  - Values: `testnet` or `mainnet`
+  - Default: `testnet`
+  - Determines which VeChain network the API will connect to
+
+- **`VECHAIN_MAINNET_RPC`** (required)
+  - Default: `https://mainnet.vechain.org`
+  - VeChain mainnet RPC endpoint URL
+
+- **`VECHAIN_TESTNET_RPC`** (required)
+  - Default: `https://testnet.vechain.org`
+  - VeChain testnet RPC endpoint URL
+
+#### Fee Delegation Configuration
+
+- **`FEE_DELEGATION_ENABLED`** (required)
+  - Values: `true` or `false`
+  - Default: `false`
+  - Enable/disable fee delegation for transactions
+
+- **`FEE_DELEGATION_PRIVATE_KEY`** (conditional)
+  - Format: 64-character hexadecimal string (without 0x prefix)
+  - Required when `FEE_DELEGATION_ENABLED=true`
+  - Private key for the fee delegation account
+  - ⚠️ **WARNING**: Never commit this to version control
+
+#### Database Configuration
+
+- **`DATABASE_URL`** (required)
+  - Format: `postgresql://username:password@host:port/database`
+  - Default/fallback database connection string
+
+- **`DATABASE_URL_TESTNET`** (optional)
+  - Overrides `DATABASE_URL` when `VECHAIN_NETWORK=testnet`
+
+- **`DATABASE_URL_MAINNET`** (optional)
+  - Overrides `DATABASE_URL` when `VECHAIN_NETWORK=mainnet`
+
+#### Authentication
+
+- **`JWT_SECRET`** (optional)
+  - Minimum length: 32 characters
+  - Secret key for JWT token generation and validation
+  - Generate with: `openssl rand -base64 32`
+  - ⚠️ **WARNING**: Never commit this to version control
+
+#### Rate Limiting
+
+- **`RATE_LIMIT_REQUESTS_PER_MINUTE`** (required)
+  - Default: `100`
+  - Maximum number of requests per IP address per minute
+
+- **`RATE_LIMIT_WINDOW_MS`** (optional)
+  - Default: `900000` (15 minutes)
+  - Rate limit time window in milliseconds
+
+#### Application Configuration
+
+- **`NODE_ENV`** (required)
+  - Values: `development`, `production`, or `test`
+  - Default: `development`
+  - Application environment
+
+- **`PORT`** (optional)
+  - Default: `3000`
+  - API server port
+
+### Configuration Validation
+
+The application validates all environment variables at startup using the `src/config/env.ts` module. If validation fails, you'll see a detailed error message indicating which variables are missing or invalid.
+
+Example validation error:
+```
+Environment variable validation failed:
+  - VECHAIN_NETWORK: Invalid enum value. Expected 'testnet' | 'mainnet', received 'invalid'
+  - DATABASE_URL: Required
+  
+Please check your .env file or environment configuration.
+```
 
 ## Deployment
 
