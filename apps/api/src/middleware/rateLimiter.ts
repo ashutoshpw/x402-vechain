@@ -5,6 +5,7 @@
 
 import { Context, Next } from 'hono';
 import { HTTPException } from 'hono/http-exception';
+import { env } from '../config/env.js';
 
 interface RateLimitEntry {
   count: number;
@@ -13,9 +14,9 @@ interface RateLimitEntry {
 
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
-// Default: 100 requests per 15 minutes
-const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes in milliseconds
-const RATE_LIMIT_MAX_REQUESTS = 100;
+// Rate limiting configuration from environment
+const RATE_LIMIT_WINDOW = env.RATE_LIMIT_WINDOW_MS;
+const RATE_LIMIT_MAX_REQUESTS = env.RATE_LIMIT_REQUESTS_PER_MINUTE;
 
 /**
  * Rate limiter middleware
@@ -72,7 +73,7 @@ export const rateLimiter = () => {
 };
 
 // Initialize cleanup only in non-test environments
-if (process.env.NODE_ENV !== 'test') {
+if (env.NODE_ENV !== 'test') {
   // Clean up expired entries periodically
   setInterval(() => {
     const now = Date.now();
