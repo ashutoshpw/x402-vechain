@@ -11,6 +11,7 @@ export const users = pgTable('users', {
   metadata: jsonb('metadata').default({}),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  lastLogin: timestamp('last_login'),
 }, (table) => ({
   walletAddressIdx: index('wallet_address_idx').on(table.walletAddress),
 }))

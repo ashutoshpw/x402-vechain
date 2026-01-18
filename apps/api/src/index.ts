@@ -3,6 +3,7 @@ import { cors } from 'hono/cors'
 import { errorHandler } from './middleware/errorHandler.js'
 import { rateLimiter } from './middleware/rateLimiter.js'
 import x402Routes from './routes/x402.js'
+import authRoutes from './routes/auth.js'
 
 const app = new Hono()
 
@@ -14,6 +15,7 @@ app.use('/*', cors({
   allowHeaders: ['Content-Type', 'Authorization'],
   exposeHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
   maxAge: 86400, // 24 hours
+  credentials: true, // Allow cookies
 }))
 
 // Apply rate limiting to all routes
@@ -25,12 +27,19 @@ app.get('/', (c) => {
     message: 'x402 VeChain Facilitator API',
     version: '1.0.0',
     endpoints: [
+      'POST /auth/challenge',
+      'POST /auth/verify',
+      'POST /auth/logout',
+      'GET /auth/me',
       'POST /verify',
       'POST /settle',
       'GET /supported'
     ]
   })
 })
+
+// Mount authentication routes
+app.route('/', authRoutes)
 
 // Mount x402 routes
 app.route('/', x402Routes)
