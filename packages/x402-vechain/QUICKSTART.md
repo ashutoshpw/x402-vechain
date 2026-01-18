@@ -14,37 +14,43 @@ yarn add @x402/vechain
 
 ## Client-Side Usage (Browser)
 
-### Basic Example
+### Using Auto-Detected Wallet (Recommended)
 
 ```typescript
-import { x402Fetch, createPaymentPayload } from '@x402/vechain';
+import { x402Fetch, autoDetectWallet } from '@x402/vechain';
+
+// Auto-detect VeWorld or Connex wallet
+const wallet = autoDetectWallet();
+
+if (!wallet) {
+  console.error('No VeChain wallet detected. Please install VeWorld or VeChain Sync.');
+  return;
+}
 
 // Make a request that requires payment
 const response = await x402Fetch('https://api.example.com/premium-data', {
   facilitatorUrl: 'https://facilitator.example.com',
-  onPaymentRequired: async (requirements) => {
-    // Get payment details
-    const option = requirements.paymentOptions[0];
-    
-    // In production, get this from user's wallet (VeChain Sync, VeWorld)
-    const privateKey = await wallet.getPrivateKey();
-    
-    // Create signed payment
-    return await createPaymentPayload(
-      {
-        network: option.network,
-        recipient: option.recipient,
-        amount: option.amount,
-        asset: option.asset,
-      },
-      privateKey
-    );
-  },
+  wallet, // Wallet will automatically sign payment when needed
+  maxAmount: '1000000000000000000', // Optional: Max 1 VET
 });
 
 const data = await response.json();
 console.log('Premium data:', data);
 ```
+
+### Using Specific Wallet
+
+```typescript
+import { x402Fetch, VeWorldWalletAdapter } from '@x402/vechain';
+
+// Use VeWorld explicitly
+const wallet = new VeWorldWalletAdapter();
+await wallet.connect();
+
+const response = await x402Fetch('https://api.example.com/premium-data', {
+  facilitatorUrl: 'https://facilitator.example.com',
+  wallet,
+});
 
 ## Server-Side Usage (Hono)
 
