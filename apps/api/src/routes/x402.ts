@@ -7,11 +7,17 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { VerifyRequestSchema, SettleRequestSchema } from '../schemas/x402.js';
 import type { VerifyResponse, SettleResponse, SupportedResponse, PaymentOption } from '../types/x402.js';
+import { veChainService } from '../services/VeChainService.js';
+import { VECHAIN_NETWORKS, VECHAIN_TIMING } from '../config/vechain.js';
+import { validatePaymentDetails, CONTRACT_INTERACTION_ERROR } from './helpers.js';
 
 const x402Routes = new Hono();
 
-// Constants
-const TX_HASH_LENGTH = 64;
+// Supported networks
+const SUPPORTED_NETWORKS = [VECHAIN_NETWORKS.TESTNET];
+
+// Configurable confirmation count (can be overridden via env or per-request)
+const DEFAULT_CONFIRMATIONS = VECHAIN_TIMING.DEFAULT_CONFIRMATIONS;
 
 /**
  * POST /verify
@@ -46,9 +52,8 @@ x402Routes.post('/verify', zValidator('json', VerifyRequestSchema), async (c) =>
     }
 
     // Check if any payment option matches supported networks
-    const supportedNetworks = ['eip155:100009']; // VeChain testnet
     const hasValidNetwork = paymentRequirements.paymentOptions.some(
-      (option: PaymentOption) => supportedNetworks.includes(option.network)
+      (option: PaymentOption) => SUPPORTED_NETWORKS.includes(option.network)
     );
 
     if (!hasValidNetwork) {
@@ -68,6 +73,44 @@ x402Routes.post('/verify', zValidator('json', VerifyRequestSchema), async (c) =>
         const response: VerifyResponse = {
           isValid: false,
           invalidReason: 'Payment requirements have expired',
+        };
+        return c.json(response, 400);
+      }
+    }
+
+    // If payload contains a transaction hash, verify it on-chain
+    if (parsedPayload.transactionHash) {
+      try {
+        const receipt = await veChainService.verifyTransaction(parsedPayload.transactionHash);
+        
+        // Check if transaction was reverted
+        if (receipt.reverted) {
+          const response: VerifyResponse = {
+            isValid: false,
+            invalidReason: 'Transaction was reverted on-chain',
+          };
+          return c.json(response, 400);
+        }
+
+        // Decode transaction to extract payment details
+        const paymentDetails = await veChainService.decodeTransaction(parsedPayload.transactionHash);
+        
+        // Validate payment matches requirements
+        const matchingOption = validatePaymentDetails(paymentDetails, paymentRequirements.paymentOptions);
+        
+        if (!matchingOption) {
+          const response: VerifyResponse = {
+            isValid: false,
+            invalidReason: paymentDetails.token === 'CONTRACT_INTERACTION'
+              ? CONTRACT_INTERACTION_ERROR
+              : 'Transaction does not match any payment requirements',
+          };
+          return c.json(response, 400);
+        }
+      } catch (error) {
+        const response: VerifyResponse = {
+          isValid: false,
+          invalidReason: `Transaction verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         };
         return c.json(response, 400);
       }
@@ -114,50 +157,128 @@ x402Routes.post('/settle', zValidator('json', SettleRequestSchema), async (c) =>
     if (!paymentRequirements.paymentOptions || paymentRequirements.paymentOptions.length === 0) {
       const response: SettleResponse = {
         success: false,
-        networkId: 'eip155:100009',
+        networkId: VECHAIN_NETWORKS.TESTNET,
         error: 'No payment options provided',
       };
       return c.json(response, 400);
     }
 
     // Check for supported network (VeChain)
-    const supportedNetworks = ['eip155:100009']; // VeChain testnet
     const matchingOption = paymentRequirements.paymentOptions.find(
-      (option: PaymentOption) => supportedNetworks.includes(option.network)
+      (option: PaymentOption) => SUPPORTED_NETWORKS.includes(option.network)
     );
 
     if (!matchingOption) {
       const response: SettleResponse = {
         success: false,
-        networkId: 'eip155:100009',
+        networkId: VECHAIN_NETWORKS.TESTNET,
         error: 'No supported network found in payment options',
       };
       return c.json(response, 400);
     }
 
-    // TODO: Implement actual VeChain transaction submission
-    // For now, return a mock successful response
-    // In production, this would:
-    // 1. Connect to VeChain network
-    // 2. Submit the transaction
-    // 3. Wait for confirmation
-    // 4. Return transaction hash
+    // Handle transaction submission
+    let txHash: string;
+    
+    if (parsedPayload.signedTransaction) {
+      // Submit a pre-signed transaction
+      try {
+        txHash = await veChainService.submitTransaction(parsedPayload.signedTransaction);
+      } catch (error) {
+        const response: SettleResponse = {
+          success: false,
+          networkId: matchingOption.network,
+          error: `Failed to submit transaction: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        };
+        return c.json(response, 500);
+      }
+    } else if (parsedPayload.transactionHash) {
+      // Verify an already submitted transaction
+      txHash = parsedPayload.transactionHash;
+      
+      try {
+        const receipt = await veChainService.verifyTransaction(txHash);
+        
+        // Check if transaction was reverted
+        if (receipt.reverted) {
+          const response: SettleResponse = {
+            success: false,
+            networkId: matchingOption.network,
+            transactionHash: txHash,
+            error: 'Transaction was reverted on-chain',
+          };
+          return c.json(response, 400);
+        }
+      } catch (error) {
+        const response: SettleResponse = {
+          success: false,
+          networkId: matchingOption.network,
+          transactionHash: txHash,
+          error: `Failed to verify transaction: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        };
+        return c.json(response, 400);
+      }
+    } else {
+      const response: SettleResponse = {
+        success: false,
+        networkId: matchingOption.network,
+        error: 'Payment payload must contain either signedTransaction or transactionHash',
+      };
+      return c.json(response, 400);
+    }
 
-    // Mock transaction hash for demonstration
-    const mockTxHash = '0x' + Array.from({ length: TX_HASH_LENGTH }, () => 
-      Math.floor(Math.random() * 16).toString(16)
-    ).join('');
+    // Wait for transaction confirmation (using configurable confirmation count)
+    const confirmed = await veChainService.waitForConfirmation(txHash, DEFAULT_CONFIRMATIONS);
+    
+    if (!confirmed) {
+      const response: SettleResponse = {
+        success: false,
+        networkId: matchingOption.network,
+        transactionHash: txHash,
+        error: 'Transaction confirmation timeout or reverted',
+      };
+      return c.json(response, 408);
+    }
 
+    // Verify payment details match requirements
+    try {
+      const paymentDetails = await veChainService.decodeTransaction(txHash);
+      
+      // Validate payment matches requirements
+      const validationResult = validatePaymentDetails(paymentDetails, paymentRequirements.paymentOptions);
+      
+      if (!validationResult) {
+        const response: SettleResponse = {
+          success: false,
+          networkId: matchingOption.network,
+          transactionHash: txHash,
+          error: paymentDetails.token === 'CONTRACT_INTERACTION'
+            ? CONTRACT_INTERACTION_ERROR
+            : 'Transaction does not match payment requirements',
+        };
+        return c.json(response, 400);
+      }
+    } catch (error) {
+      const response: SettleResponse = {
+        success: false,
+        networkId: matchingOption.network,
+        transactionHash: txHash,
+        error: `Failed to decode transaction: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+      return c.json(response, 500);
+    }
+
+    // Settlement successful
     const response: SettleResponse = {
       success: true,
-      transactionHash: mockTxHash,
+      transactionHash: txHash,
       networkId: matchingOption.network,
     };
     return c.json(response, 200);
   } catch (error) {
     const response: SettleResponse = {
       success: false,
-      networkId: 'eip155:100009',
+      networkId: VECHAIN_NETWORKS.TESTNET,
       error: `Settlement error: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
     return c.json(response, 500);
@@ -172,7 +293,7 @@ x402Routes.get('/supported', (c) => {
   const response: SupportedResponse = {
     networks: [
       {
-        network: 'eip155:100009', // VeChain testnet (CAIP-2 format)
+        network: VECHAIN_NETWORKS.TESTNET, // VeChain testnet (CAIP-2 format)
         assets: [
           'VET',  // VeChain native token
           'VTHO', // VeThor token
