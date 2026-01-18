@@ -14,7 +14,7 @@ import type { PaymentPayload, PaymentOption } from '../types/x402.js';
 import { db } from '../db/index.js';
 import { nonces } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
-import { VECHAIN_NETWORKS, VECHAIN_TOKENS } from '../config/vechain.js';
+import { VECHAIN_NETWORKS, VECHAIN_TOKENS, SUPPORTED_NETWORKS } from '../config/vechain.js';
 
 /**
  * Result of payment payload verification
@@ -120,6 +120,7 @@ export async function isNonceUsed(walletAddress: string, nonce: string): Promise
  * @param walletAddress Wallet address
  * @param nonce Nonce value
  * @param validUntil Expiration timestamp
+ * @throws Error if nonce already exists (race condition detected) or database error
  */
 export async function cacheNonce(walletAddress: string, nonce: string, validUntil: number): Promise<void> {
   try {
@@ -129,7 +130,12 @@ export async function cacheNonce(walletAddress: string, nonce: string, validUnti
       expiresAt: new Date(validUntil * 1000), // Convert Unix timestamp to Date
     });
   } catch (error) {
-    throw new Error(`Failed to cache nonce: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    // Check if this is a unique constraint violation (race condition)
+    const errorMessage = error instanceof Error ? error.message : '';
+    if (errorMessage.includes('unique') || errorMessage.includes('duplicate')) {
+      throw new Error('Nonce has already been used (detected concurrent request)');
+    }
+    throw new Error(`Failed to cache nonce: ${errorMessage || 'Unknown error'}`);
   }
 }
 
@@ -223,9 +229,8 @@ export async function verifyPaymentPayload(
     // Normalize network for comparison
     const normalizedNetwork = normalizeNetworkIdentifier(payload.network);
     
-    // Check if network is supported
-    const supportedNetworks = [VECHAIN_NETWORKS.TESTNET, VECHAIN_NETWORKS.MAINNET];
-    if (!supportedNetworks.includes(normalizedNetwork)) {
+    // Check if network is supported (using shared configuration)
+    if (!SUPPORTED_NETWORKS.includes(normalizedNetwork as any)) {
       return {
         isValid: false,
         error: `Unsupported network: ${payload.network}`,
@@ -279,6 +284,9 @@ export async function verifyPaymentPayload(
       
       const networkMatches = optionNetwork === payloadNetwork;
       const recipientMatches = option.recipient.toLowerCase() === payload.payTo.toLowerCase();
+      // Note: Using >= allows overpayment. For the 'exact' scheme, this means
+      // the user can pay more than required, which is acceptable for most use cases.
+      // If strict exact amount matching is needed, change to: BigInt(payload.amount) === BigInt(option.amount)
       const amountMatches = BigInt(payload.amount) >= BigInt(option.amount);
       
       // Asset matching (handle 'native' and token symbols)

@@ -8,14 +8,11 @@ import { zValidator } from '@hono/zod-validator';
 import { VerifyRequestSchema, SettleRequestSchema } from '../schemas/x402.js';
 import type { VerifyResponse, SettleResponse, SupportedResponse, PaymentOption, PaymentPayload } from '../types/x402.js';
 import { veChainService } from '../services/VeChainService.js';
-import { VECHAIN_NETWORKS, VECHAIN_TIMING } from '../config/vechain.js';
+import { VECHAIN_NETWORKS, VECHAIN_TIMING, SUPPORTED_NETWORKS } from '../config/vechain.js';
 import { validatePaymentDetails, CONTRACT_INTERACTION_ERROR } from './helpers.js';
 import { verifyPaymentPayload } from '../services/PaymentVerificationService.js';
 
 const x402Routes = new Hono();
-
-// Supported networks
-const SUPPORTED_NETWORKS = [VECHAIN_NETWORKS.TESTNET];
 
 // Configurable confirmation count (can be overridden via env or per-request)
 const DEFAULT_CONFIRMATIONS = VECHAIN_TIMING.DEFAULT_CONFIRMATIONS;
@@ -315,15 +312,13 @@ x402Routes.post('/settle', zValidator('json', SettleRequestSchema), async (c) =>
  */
 x402Routes.get('/supported', (c) => {
   const response: SupportedResponse = {
-    networks: [
-      {
-        network: VECHAIN_NETWORKS.TESTNET, // VeChain testnet (CAIP-2 format)
-        assets: [
-          'VET',  // VeChain native token
-          'VTHO', // VeThor token
-        ],
-      },
-    ],
+    networks: SUPPORTED_NETWORKS.map(network => ({
+      network,
+      assets: [
+        'VET',  // VeChain native token
+        'VTHO', // VeThor token
+      ],
+    })),
     schemes: ['x402'], // Supported payment schemes
   };
   
