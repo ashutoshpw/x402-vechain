@@ -4,6 +4,7 @@
  */
 
 import { Secp256k1, Keccak256, Hex } from '@vechain/sdk-core';
+import { webcrypto } from 'node:crypto';
 import type {
   PaymentPayload,
   PaymentRequirements,
@@ -12,12 +13,24 @@ import type {
 } from '../types/index.js';
 
 /**
+ * Get crypto implementation (browser or Node.js)
+ */
+const getCrypto = (): Crypto => {
+  // In browser
+  if (typeof globalThis.crypto !== 'undefined') {
+    return globalThis.crypto;
+  }
+  // In Node.js
+  return webcrypto as Crypto;
+};
+
+/**
  * Generate a random nonce for replay protection
  * @returns 32-byte hex string (without 0x prefix)
  */
 export function generateNonce(): string {
   const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
+  getCrypto().getRandomValues(bytes);
   return Array.from(bytes)
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
