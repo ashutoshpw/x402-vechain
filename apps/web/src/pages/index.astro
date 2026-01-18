@@ -25,9 +25,13 @@ try {
       <p><strong>API Status:</strong> {data.message}</p>
     </div>
 
-    <a href="/playground" class="playground-link">
-      🎮 Open Payment Playground →
-    </a>
+    <div class="cta-section">
+      <h2>Try the Interactive Playground</h2>
+      <p>Test x402 payments on VeChain testnet with VeWorld or Sync2 wallet</p>
+      <a href="/playground" class="playground-link">
+        Open Payment Playground →
+      </a>
+    </div>
   </div>
 </Layout>
 
@@ -56,7 +60,7 @@ try {
     border: 1px solid #e0e0e0;
     border-radius: 8px;
     padding: 2rem;
-    margin-bottom: 2rem;
+    margin-bottom: 3rem;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   }
 
@@ -64,19 +68,40 @@ try {
     margin: 0;
   }
 
+  .cta-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 3rem 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+  }
+
+  .cta-section h2 {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+  }
+
+  .cta-section p {
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+  }
+
   .playground-link {
     display: inline-block;
-    background: #2196f3;
-    color: white;
+    background: white;
+    color: #667eea;
     padding: 1rem 2rem;
-    border-radius: 4px;
+    border-radius: 8px;
     text-decoration: none;
     font-size: 1.1rem;
-    font-weight: 500;
-    transition: background 0.2s;
+    font-weight: 600;
+    transition: all 0.2s;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   }
 
   .playground-link:hover {
-    background: #1976d2;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
   }
 </style>
