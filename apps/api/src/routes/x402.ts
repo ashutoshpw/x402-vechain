@@ -10,6 +10,9 @@ import type { VerifyResponse, SettleResponse, SupportedResponse, PaymentOption }
 
 const x402Routes = new Hono();
 
+// Constants
+const TX_HASH_LENGTH = 64;
+
 /**
  * POST /verify
  * Validates payment payloads without settling
@@ -141,7 +144,7 @@ x402Routes.post('/settle', zValidator('json', SettleRequestSchema), async (c) =>
     // 4. Return transaction hash
 
     // Mock transaction hash for demonstration
-    const mockTxHash = '0x' + Array.from({ length: 64 }, () => 
+    const mockTxHash = '0x' + Array.from({ length: TX_HASH_LENGTH }, () => 
       Math.floor(Math.random() * 16).toString(16)
     ).join('');
 

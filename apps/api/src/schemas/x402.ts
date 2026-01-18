@@ -17,7 +17,13 @@ export const PaymentRequirementsSchema = z.object({
   paymentOptions: z.array(PaymentOptionSchema).min(1, 'At least one payment option is required'),
   merchantId: z.string().min(1, 'Merchant ID is required'),
   merchantUrl: z.string().url().optional(),
-  expiresAt: z.string().datetime().optional(),
+  expiresAt: z.string().refine((val) => {
+    if (!val) return true;
+    const date = new Date(val);
+    return !isNaN(date.getTime());
+  }, {
+    message: 'Invalid datetime format',
+  }).optional(),
 });
 
 // Verify request schema

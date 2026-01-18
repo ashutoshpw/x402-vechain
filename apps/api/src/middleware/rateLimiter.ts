@@ -71,12 +71,15 @@ export const rateLimiter = () => {
   };
 };
 
-// Clean up expired entries periodically
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, entry] of rateLimitStore.entries()) {
-    if (now > entry.resetTime) {
-      rateLimitStore.delete(ip);
+// Initialize cleanup only in non-test environments
+if (process.env.NODE_ENV !== 'test') {
+  // Clean up expired entries periodically
+  setInterval(() => {
+    const now = Date.now();
+    for (const [ip, entry] of rateLimitStore.entries()) {
+      if (now > entry.resetTime) {
+        rateLimitStore.delete(ip);
+      }
     }
-  }
-}, 60 * 1000); // Clean up every minute
+  }, 60 * 1000); // Clean up every minute
+}
