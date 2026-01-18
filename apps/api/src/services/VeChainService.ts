@@ -43,6 +43,32 @@ export class VeChainService {
   }
 
   /**
+   * Ensure transaction hash has 0x prefix
+   * @param hash Hash string to format
+   * @returns Formatted hash with 0x prefix
+   */
+  private formatHexString(hash: string): string {
+    return hash.startsWith('0x') ? hash : `0x${hash}`;
+  }
+
+  /**
+   * Get account information from blockchain
+   * @param address Address to query
+   * @returns Account information
+   * @throws Error if account not found
+   */
+  private async getAccount(address: string) {
+    const formattedAddress = Address.of(address);
+    const account = await this.thorClient.accounts.getAccount(formattedAddress);
+    
+    if (!account) {
+      throw new Error(`Account not found: ${address}`);
+    }
+    
+    return account;
+  }
+
+  /**
    * Verify a transaction by retrieving its receipt
    * @param txHash Transaction hash to verify
    * @returns Transaction receipt if found
@@ -50,8 +76,7 @@ export class VeChainService {
    */
   async verifyTransaction(txHash: string): Promise<TransactionReceipt> {
     try {
-      // Ensure txHash has 0x prefix
-      const formattedTxHash = txHash.startsWith('0x') ? txHash : `0x${txHash}`;
+      const formattedTxHash = this.formatHexString(txHash);
       
       const receipt = await this.thorClient.transactions.getTransactionReceipt(
         formattedTxHash
@@ -77,8 +102,7 @@ export class VeChainService {
    */
   async submitTransaction(signedTx: string): Promise<string> {
     try {
-      // Ensure signedTx has 0x prefix
-      const formattedTx = signedTx.startsWith('0x') ? signedTx : `0x${signedTx}`;
+      const formattedTx = this.formatHexString(signedTx);
       
       const result = await this.thorClient.transactions.sendRawTransaction(
         formattedTx
@@ -105,22 +129,13 @@ export class VeChainService {
    */
   async getBalance(address: string, token: string): Promise<bigint> {
     try {
-      // Validate and format address
-      const formattedAddress = Address.of(address);
-      
       if (token.toUpperCase() === VECHAIN_TOKENS.VET) {
         // Get VET balance from account
-        const account = await this.thorClient.accounts.getAccount(formattedAddress);
-        if (!account) {
-          throw new Error(`Account not found: ${address}`);
-        }
+        const account = await this.getAccount(address);
         return BigInt(account.balance);
       } else if (token.toUpperCase() === VECHAIN_TOKENS.VTHO) {
         // Get VTHO balance from energy field
-        const account = await this.thorClient.accounts.getAccount(formattedAddress);
-        if (!account) {
-          throw new Error(`Account not found: ${address}`);
-        }
+        const account = await this.getAccount(address);
         return BigInt(account.energy);
       } else {
         // For other tokens, would need to call balanceOf on the token contract
@@ -147,8 +162,7 @@ export class VeChainService {
     confirmations: number = VECHAIN_TIMING.DEFAULT_CONFIRMATIONS
   ): Promise<boolean> {
     try {
-      // Ensure txHash has 0x prefix
-      const formattedTxHash = txHash.startsWith('0x') ? txHash : `0x${txHash}`;
+      const formattedTxHash = this.formatHexString(txHash);
       
       const maxAttempts = VECHAIN_TIMING.MAX_CONFIRMATION_ATTEMPTS;
       const pollInterval = VECHAIN_TIMING.BLOCK_TIME_MS;
@@ -199,8 +213,7 @@ export class VeChainService {
    */
   async decodeTransaction(txHash: string): Promise<PaymentDetails> {
     try {
-      // Ensure txHash has 0x prefix
-      const formattedTxHash = txHash.startsWith('0x') ? txHash : `0x${txHash}`;
+      const formattedTxHash = this.formatHexString(txHash);
       
       // Get transaction
       const tx = await this.thorClient.transactions.getTransaction(

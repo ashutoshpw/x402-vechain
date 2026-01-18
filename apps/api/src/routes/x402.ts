@@ -9,6 +9,7 @@ import { VerifyRequestSchema, SettleRequestSchema } from '../schemas/x402.js';
 import type { VerifyResponse, SettleResponse, SupportedResponse, PaymentOption } from '../types/x402.js';
 import { veChainService } from '../services/VeChainService.js';
 import { VECHAIN_NETWORKS, VECHAIN_TIMING } from '../config/vechain.js';
+import { validatePaymentDetails, CONTRACT_INTERACTION_ERROR } from './helpers.js';
 
 const x402Routes = new Hono();
 
@@ -94,36 +95,15 @@ x402Routes.post('/verify', zValidator('json', VerifyRequestSchema), async (c) =>
         // Decode transaction to extract payment details
         const paymentDetails = await veChainService.decodeTransaction(parsedPayload.transactionHash);
         
-        // Reject contract interactions since we cannot decode the amount without ABI
-        if (paymentDetails.token === 'CONTRACT_INTERACTION') {
-          const response: VerifyResponse = {
-            isValid: false,
-            invalidReason: 'Contract interaction transactions are not supported. Please use direct VET or VTHO transfers.',
-          };
-          return c.json(response, 400);
-        }
-        
         // Validate payment matches requirements
-        const matchingOption = paymentRequirements.paymentOptions.find(
-          (option: PaymentOption) => {
-            // Check if recipient matches
-            const recipientMatches = option.recipient.toLowerCase() === paymentDetails.to.toLowerCase();
-            
-            // Check if amount matches (convert option.amount to bigint)
-            const requiredAmount = BigInt(option.amount);
-            const amountMatches = paymentDetails.amount >= requiredAmount;
-            
-            // Check if token matches
-            const tokenMatches = option.asset.toUpperCase() === paymentDetails.token.toUpperCase();
-            
-            return recipientMatches && amountMatches && tokenMatches;
-          }
-        );
-
+        const matchingOption = validatePaymentDetails(paymentDetails, paymentRequirements.paymentOptions);
+        
         if (!matchingOption) {
           const response: VerifyResponse = {
             isValid: false,
-            invalidReason: 'Transaction does not match any payment requirements',
+            invalidReason: paymentDetails.token === 'CONTRACT_INTERACTION'
+              ? CONTRACT_INTERACTION_ERROR
+              : 'Transaction does not match any payment requirements',
           };
           return c.json(response, 400);
         }
@@ -264,29 +244,17 @@ x402Routes.post('/settle', zValidator('json', SettleRequestSchema), async (c) =>
     try {
       const paymentDetails = await veChainService.decodeTransaction(txHash);
       
-      // Reject contract interactions since we cannot decode the amount without ABI
-      if (paymentDetails.token === 'CONTRACT_INTERACTION') {
-        const response: SettleResponse = {
-          success: false,
-          networkId: matchingOption.network,
-          transactionHash: txHash,
-          error: 'Contract interaction transactions are not supported. Please use direct VET or VTHO transfers.',
-        };
-        return c.json(response, 400);
-      }
-      
       // Validate payment matches requirements
-      const recipientMatches = matchingOption.recipient.toLowerCase() === paymentDetails.to.toLowerCase();
-      const requiredAmount = BigInt(matchingOption.amount);
-      const amountMatches = paymentDetails.amount >= requiredAmount;
-      const tokenMatches = matchingOption.asset.toUpperCase() === paymentDetails.token.toUpperCase();
+      const validationResult = validatePaymentDetails(paymentDetails, paymentRequirements.paymentOptions);
       
-      if (!recipientMatches || !amountMatches || !tokenMatches) {
+      if (!validationResult) {
         const response: SettleResponse = {
           success: false,
           networkId: matchingOption.network,
           transactionHash: txHash,
-          error: 'Transaction does not match payment requirements',
+          error: paymentDetails.token === 'CONTRACT_INTERACTION'
+            ? CONTRACT_INTERACTION_ERROR
+            : 'Transaction does not match payment requirements',
         };
         return c.json(response, 400);
       }

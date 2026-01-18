@@ -24,6 +24,8 @@ export const VECHAIN_TOKENS = {
  */
 export const VECHAIN_CONTRACTS = {
   // VeThor (VTHO) energy contract address
+  // This is VeChain's official built-in energy/VTHO contract
+  // Reference: https://docs.vechain.org/core-concepts/transactions/meta-transaction-features
   VTHO: '0x0000000000000000000000000000456E65726779',
 } as const;
 
