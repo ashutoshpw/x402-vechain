@@ -37,8 +37,8 @@ const envSchema = z.object({
   // Fee Delegation Configuration
   FEE_DELEGATION_ENABLED: z
     .string()
-    .transform((val) => val === 'true')
     .default('false')
+    .transform((val) => val === 'true')
     .describe('Enable fee delegation for transactions'),
   
   FEE_DELEGATION_PRIVATE_KEY: z
@@ -73,14 +73,14 @@ const envSchema = z.object({
   // Rate Limiting
   RATE_LIMIT_REQUESTS_PER_MINUTE: z
     .string()
-    .transform((val) => parseInt(val, 10))
     .default('100')
+    .transform((val) => parseInt(val, 10))
     .describe('Maximum requests per IP per minute'),
   
   RATE_LIMIT_WINDOW_MS: z
     .string()
-    .transform((val) => parseInt(val, 10))
     .default('900000')
+    .transform((val) => parseInt(val, 10))
     .describe('Rate limit time window in milliseconds'),
 
   // Application Configuration
@@ -91,8 +91,8 @@ const envSchema = z.object({
   
   PORT: z
     .string()
-    .transform((val) => parseInt(val, 10))
     .default('3000')
+    .transform((val) => parseInt(val, 10))
     .describe('API server port'),
 })
 
@@ -114,7 +114,7 @@ function validateEnv() {
     return parsed
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errorMessages = error.errors.map((err) => {
+      const errorMessages = error.issues.map((err) => {
         const path = err.path.join('.')
         return `  - ${path}: ${err.message}`
       })
