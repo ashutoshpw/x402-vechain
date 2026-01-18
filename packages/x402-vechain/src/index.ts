@@ -44,4 +44,7 @@ export {
 export type {
   PaymentVerification,
   PaymentMiddlewareOptions,
+  RoutePaymentConfig,
+  RoutePaymentMap,
+  EnhancedPaymentMiddlewareOptions,
 } from './server/index.js';

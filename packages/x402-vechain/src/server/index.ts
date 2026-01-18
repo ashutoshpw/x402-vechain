@@ -24,6 +24,33 @@ export interface PaymentVerification {
 }
 
 /**
+ * Simplified route configuration for payment requirements
+ */
+export interface RoutePaymentConfig {
+  /** Price in token units (will be converted to wei) */
+  price: string;
+  /** Token symbol (VET, VTHO, VEUSD, B3TR, or contract address) */
+  token: string;
+  /** Network identifier (CAIP-2 format or 'vechain:chainId') */
+  network: string;
+  /** Payment recipient address */
+  payTo: string;
+  /** Optional merchant ID (defaults to 'default') */
+  merchantId?: string;
+  /** Optional merchant URL */
+  merchantUrl?: string;
+  /** Optional facilitator URL for this specific route */
+  facilitatorUrl?: string;
+}
+
+/**
+ * Route-based payment configuration
+ * Maps route patterns to payment configs
+ * Example: { "GET /api/premium": { price: "0.01", token: "VEUSD", ... } }
+ */
+export type RoutePaymentMap = Record<string, RoutePaymentConfig>;
+
+/**
  * Options for payment middleware
  */
 export interface PaymentMiddlewareOptions {
@@ -56,6 +83,165 @@ export interface PaymentMiddlewareOptions {
    * If provided, delegates verification to the facilitator
    */
   facilitatorUrl?: string;
+}
+
+/**
+ * Enhanced middleware options supporting route-based configuration
+ */
+export interface EnhancedPaymentMiddlewareOptions {
+  /**
+   * Route-based payment configuration map
+   * Can be passed directly as the first parameter to paymentMiddleware
+   */
+  routes?: RoutePaymentMap;
+
+  /**
+   * Default facilitator URL for all routes
+   * Can be overridden per-route in the route config
+   */
+  facilitatorUrl?: string;
+
+  /**
+   * Custom payment verification function
+   */
+  verifyPayment?: (
+    payload: PaymentPayload,
+    requirements: PaymentRequirements
+  ) => Promise<PaymentVerification>;
+
+  /**
+   * Callback after payment is verified
+   */
+  onPaymentVerified?: (
+    c: Context,
+    verification: PaymentVerification
+  ) => void | Promise<void>;
+}
+
+/**
+ * Convert price in token units to wei
+ * VeChain uses 18 decimals for VET and VTHO
+ */
+function priceToWei(price: string, decimals: number = 18): string {
+  // Parse the price as a float
+  const priceFloat = parseFloat(price);
+  if (isNaN(priceFloat) || priceFloat < 0) {
+    throw new Error(`Invalid price: ${price}`);
+  }
+
+  // Convert to wei (multiply by 10^decimals)
+  const weiAmount = BigInt(Math.floor(priceFloat * Math.pow(10, decimals)));
+  return weiAmount.toString();
+}
+
+/**
+ * Normalize network identifier to CAIP-2 format
+ * Converts 'vechain:100009' to 'eip155:100009'
+ */
+function normalizeNetworkId(network: string): string {
+  if (network.startsWith('vechain:')) {
+    return network.replace('vechain:', 'eip155:');
+  }
+  return network;
+}
+
+/**
+ * Match route pattern against request
+ * Supports patterns like "GET /api/premium" or "/api/premium"
+ */
+function matchRoute(pattern: string, method: string, path: string): boolean {
+  const parts = pattern.trim().split(/\s+/);
+  
+  if (parts.length === 2) {
+    // Pattern includes method: "GET /api/premium"
+    const [patternMethod, patternPath] = parts;
+    return patternMethod.toUpperCase() === method.toUpperCase() && 
+           matchPath(patternPath, path);
+  } else {
+    // Pattern is just path: "/api/premium"
+    return matchPath(pattern, path);
+  }
+}
+
+/**
+ * Match path pattern with wildcards
+ * Supports exact match and wildcard patterns
+ */
+function matchPath(pattern: string, path: string): boolean {
+  // Remove trailing slashes for comparison
+  const normalizedPattern = pattern.replace(/\/$/, '');
+  const normalizedPath = path.replace(/\/$/, '');
+  
+  // Exact match
+  if (normalizedPattern === normalizedPath) {
+    return true;
+  }
+  
+  // Wildcard match (e.g., "/api/*" matches "/api/anything")
+  if (normalizedPattern.endsWith('/*')) {
+    const prefix = normalizedPattern.slice(0, -2);
+    return normalizedPath.startsWith(prefix);
+  }
+  
+  // Pattern with path parameters (e.g., "/api/:id")
+  const patternParts = normalizedPattern.split('/');
+  const pathParts = normalizedPath.split('/');
+  
+  if (patternParts.length !== pathParts.length) {
+    return false;
+  }
+  
+  return patternParts.every((part, i) => {
+    return part.startsWith(':') || part === pathParts[i];
+  });
+}
+
+/**
+ * Convert route payment config to PaymentRequirements
+ */
+function configToRequirements(config: RoutePaymentConfig): PaymentRequirements {
+  // Normalize network identifier
+  const network = normalizeNetworkId(config.network);
+  
+  // Convert price to wei
+  // Common VeChain tokens use 18 decimals
+  const amount = priceToWei(config.price);
+  
+  // Normalize asset identifier
+  let asset = config.token;
+  if (asset.toUpperCase() === 'VET') {
+    asset = 'VET'; // Keep as VET for compatibility
+  } else if (asset.toUpperCase() === 'VTHO') {
+    asset = 'VTHO';
+  }
+  // Otherwise assume it's a token symbol or contract address
+  
+  return {
+    paymentOptions: [{
+      network,
+      asset,
+      amount,
+      recipient: config.payTo,
+    }],
+    merchantId: config.merchantId || 'default',
+    merchantUrl: config.merchantUrl,
+  };
+}
+
+/**
+ * Find matching route configuration
+ */
+function findMatchingRoute(
+  routes: RoutePaymentMap,
+  method: string,
+  path: string
+): RoutePaymentConfig | null {
+  for (const [pattern, config] of Object.entries(routes)) {
+    if (matchRoute(pattern, method, path)) {
+      return config;
+    }
+  }
+  return null;
 }
 
 /**
@@ -179,21 +365,102 @@ async function verifyWithFacilitator(
 /**
  * Hono middleware for x402 payment verification
  * 
- * Checks for payment proof in request headers. If not found or invalid,
- * returns 402 Payment Required with payment requirements in header.
+ * Supports two usage patterns:
  * 
- * @param options Middleware configuration
+ * 1. Route-based configuration (new API):
+ * ```typescript
+ * app.use(paymentMiddleware({
+ *   "GET /api/premium": {
+ *     price: "0.01",
+ *     token: "VEUSD",
+ *     network: "vechain:100009",
+ *     payTo: "0xYourWallet..."
+ *   }
+ * }));
+ * ```
+ * 
+ * 2. Traditional configuration (existing API):
+ * ```typescript
+ * app.use('/route', paymentMiddleware({
+ *   getPaymentRequirements: (c) => ({ ... }),
+ *   facilitatorUrl: "https://..."
+ * }));
+ * ```
+ * 
+ * @param options Route map or middleware configuration
  * @returns Hono middleware handler
  */
-export function paymentMiddleware(options: PaymentMiddlewareOptions): MiddlewareHandler {
+export function paymentMiddleware(
+  options: RoutePaymentMap | PaymentMiddlewareOptions | EnhancedPaymentMiddlewareOptions
+): MiddlewareHandler {
+  // Detect which API is being used
+  const isRouteMap = !('getPaymentRequirements' in options) && 
+                     !('routes' in options) &&
+                     Object.keys(options).length > 0 &&
+                     typeof Object.values(options)[0] === 'object';
+  
+  const isEnhancedOptions = 'routes' in options;
+  
+  // Convert route map to enhanced options if needed
+  let enhancedOptions: EnhancedPaymentMiddlewareOptions;
+  
+  if (isRouteMap) {
+    // New API: route map passed directly
+    enhancedOptions = {
+      routes: options as RoutePaymentMap,
+    };
+  } else if (isEnhancedOptions) {
+    // Enhanced options with routes property
+    enhancedOptions = options as EnhancedPaymentMiddlewareOptions;
+  } else {
+    // Old API: convert to enhanced options
+    const oldOptions = options as PaymentMiddlewareOptions;
+    enhancedOptions = {
+      facilitatorUrl: oldOptions.facilitatorUrl,
+      verifyPayment: oldOptions.verifyPayment,
+      onPaymentVerified: oldOptions.onPaymentVerified,
+    };
+  }
+  
   return async (c: Context, next: Next) => {
+    // Determine payment requirements
+    let requirements: PaymentRequirements;
+    let facilitatorUrl: string | undefined = enhancedOptions.facilitatorUrl;
+    
+    if (enhancedOptions.routes) {
+      // Route-based configuration
+      const method = c.req.method;
+      const path = c.req.path;
+      
+      const matchedConfig = findMatchingRoute(enhancedOptions.routes, method, path);
+      
+      if (!matchedConfig) {
+        // No matching route - pass through without payment requirement
+        await next();
+        return;
+      }
+      
+      // Convert route config to requirements
+      requirements = configToRequirements(matchedConfig);
+      
+      // Use route-specific facilitator URL if provided
+      if (matchedConfig.facilitatorUrl) {
+        facilitatorUrl = matchedConfig.facilitatorUrl;
+      }
+    } else {
+      // Old API - must have getPaymentRequirements
+      const oldOptions = options as PaymentMiddlewareOptions;
+      if (!oldOptions.getPaymentRequirements) {
+        throw new Error('paymentMiddleware requires either route map or getPaymentRequirements option');
+      }
+      requirements = await oldOptions.getPaymentRequirements(c);
+    }
+    
     // Check for payment proof in headers
     const paymentProofHeader = c.req.header('X-Payment-Proof');
 
     if (!paymentProofHeader) {
       // No payment provided - request payment
-      const requirements = await options.getPaymentRequirements(c);
-      
       return c.json(
         { error: 'Payment required' },
         402,
@@ -213,22 +480,19 @@ export function paymentMiddleware(options: PaymentMiddlewareOptions): Middleware
       );
     }
 
-    // Get payment requirements
-    const requirements = await options.getPaymentRequirements(c);
-
     // Verify payment
     let verification: PaymentVerification;
 
-    if (options.facilitatorUrl) {
+    if (facilitatorUrl) {
       // Use facilitator for verification
       verification = await verifyWithFacilitator(
-        options.facilitatorUrl,
+        facilitatorUrl,
         paymentProofHeader,
         requirements
       );
-    } else if (options.verifyPayment) {
+    } else if (enhancedOptions.verifyPayment) {
       // Use custom verification
-      verification = await options.verifyPayment(paymentPayload, requirements);
+      verification = await enhancedOptions.verifyPayment(paymentPayload, requirements);
     } else {
       // Use basic verification (no cryptographic checks)
       verification = await basicVerifyPayment(paymentPayload, requirements);
@@ -242,8 +506,8 @@ export function paymentMiddleware(options: PaymentMiddlewareOptions): Middleware
     }
 
     // Payment verified - call onPaymentVerified hook if provided
-    if (options.onPaymentVerified) {
-      await options.onPaymentVerified(c, verification);
+    if (enhancedOptions.onPaymentVerified) {
+      await enhancedOptions.onPaymentVerified(c, verification);
     }
 
     // Store verification in context for route handlers
