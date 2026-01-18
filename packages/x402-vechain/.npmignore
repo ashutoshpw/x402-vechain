@@ -1,0 +1,21 @@
+# Source files (only ship dist)
+src/
+examples/
+test-smoke.mjs
+
+# Config files
+tsconfig.json
+tsconfig.tsbuildinfo
+
+# Development files
+.turbo/
+node_modules/
+*.log
+
+# Git files
+.git/
+.gitignore
+
+# Environment files
+.env
+.env.*

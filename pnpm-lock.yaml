@@ -131,6 +131,22 @@ importers:
         specifier: ^4.11.4
         version: 4.11.4
 
+  packages/x402-vechain:
+    dependencies:
+      '@vechain/sdk-core':
+        specifier: ^1.2.0
+        version: 1.2.0(typescript@5.9.3)(zod@4.3.5)
+      hono:
+        specifier: ^4.11.4
+        version: 4.11.4
+    devDependencies:
+      '@types/node':
+        specifier: ^20.11.17
+        version: 20.19.28
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
 packages:
 
   '@adraffy/ens-normalize@1.10.1':

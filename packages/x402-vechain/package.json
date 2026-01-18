@@ -1,0 +1,58 @@
+{
+  "name": "@x402/vechain",
+  "version": "0.1.0",
+  "description": "x402 payment protocol SDK for VeChain - client and server integration",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "import": "./dist/client/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "test": "node test-smoke.mjs"
+  },
+  "keywords": [
+    "x402",
+    "vechain",
+    "payment",
+    "protocol",
+    "blockchain",
+    "sdk"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@vechain/sdk-core": "^1.2.0",
+    "hono": "^4.11.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.17",
+    "typescript": "^5.8.3"
+  },
+  "peerDependencies": {
+    "hono": "^4.0.0"
+  }
+}
