@@ -268,8 +268,8 @@ app.use('/articles/:id', async (c, next) => {
 
 // Get full article (payment required)
 app.get('/articles/:id', (c) => {
-  const article = c.get('article');
-  const verification = c.get('paymentVerification');
+  const article = c.get('article') as any;
+  const verification = c.get('paymentVerification') as any;
   
   return c.json({
     id: article.id,

@@ -57,7 +57,7 @@ app.use(paymentMiddleware({
 // Protected endpoint - requires payment of 0.01 VET
 app.get('/premium/data', (c) => {
   // Payment verification is automatically handled by middleware
-  const verification = c.get('paymentVerification');
+  const verification = c.get('paymentVerification') as any;
   
   return c.json({
     message: 'Here is your premium data!',
@@ -71,7 +71,7 @@ app.get('/premium/data', (c) => {
 
 // Protected endpoint - requires payment of 0.05 VEUSD
 app.get('/premium/content', (c) => {
-  const verification = c.get('paymentVerification');
+  const verification = c.get('paymentVerification') as any;
   
   return c.json({
     message: 'Premium content delivered!',

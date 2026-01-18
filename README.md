@@ -4,11 +4,19 @@ A TypeScript monorepo implementing the [x402 payment protocol](https://github.co
 
 ## 🏗️ Project Structure
 
-This monorepo consists of three main applications:
+This monorepo consists of:
 
+### Applications
 - **[apps/api](/apps/api)** - Hono-based REST API implementing the x402 protocol facilitator endpoints
 - **[apps/dashboard](/apps/dashboard)** - React Router admin dashboard for managing payments
 - **[apps/web](/apps/web)** - Astro marketing website
+
+### Examples
+- **[examples/](/examples)** - Practical integration examples and templates
+  - [Minimal Server](/examples/minimal-server) - Simple paid API
+  - [Minimal Client](/examples/minimal-client) - Browser wallet integration
+  - [AI Agent](/examples/ai-agent) - Autonomous payment bot
+  - [Content Paywall](/examples/content-paywall) - Full-stack paywall
 
 ## 🚀 Quick Start
 
@@ -179,6 +187,17 @@ Each application has its own detailed README:
 - **[API Documentation](/apps/api/README.md)** - Complete API reference, authentication, rate limiting
 - **[Dashboard Documentation](/apps/dashboard/README.md)** - Dashboard features and usage
 - **[Web Documentation](/apps/web/README.md)** - Marketing site information
+
+## 💡 Examples
+
+Learn by example! Check out our practical integration examples:
+
+- **[Minimal Server](/examples/minimal-server)** - Simple paid API endpoint (~50 lines)
+- **[Minimal Client](/examples/minimal-client)** - Browser wallet payment integration
+- **[AI Agent](/examples/ai-agent)** - Autonomous payment bot with retry logic
+- **[Content Paywall](/examples/content-paywall)** - Full-stack payment-gated content platform
+
+[**View all examples →**](/examples/README.md)
 
 ## 🏗️ Architecture
 
