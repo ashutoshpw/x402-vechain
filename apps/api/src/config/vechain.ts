@@ -42,3 +42,13 @@ export const VECHAIN_TIMING = {
   // Default number of confirmations to wait for
   DEFAULT_CONFIRMATIONS: 1,
 } as const;
+
+/**
+ * Supported networks for x402 protocol
+ * This can be configured based on deployment environment
+ */
+export const SUPPORTED_NETWORKS = [
+  VECHAIN_NETWORKS.TESTNET,
+  // Add MAINNET when ready for production:
+  // VECHAIN_NETWORKS.MAINNET,
+] as const;

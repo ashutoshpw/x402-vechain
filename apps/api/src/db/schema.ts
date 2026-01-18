@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, jsonb, bigint, index } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, text, timestamp, boolean, jsonb, bigint, index, uniqueIndex } from 'drizzle-orm/pg-core'
 
 /**
  * Users table - Stores wallet addresses and user profiles
@@ -74,4 +74,6 @@ export const nonces = pgTable('nonces', {
 }, (table) => ({
   walletNonceIdx: index('wallet_nonce_idx').on(table.walletAddress, table.nonce),
   expiresAtIdx: index('expires_at_idx').on(table.expiresAt),
+  // Unique constraint to prevent race conditions in concurrent requests
+  uniqueWalletNonce: uniqueIndex('unique_wallet_nonce').on(table.walletAddress, table.nonce),
 }))

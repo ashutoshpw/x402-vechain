@@ -52,3 +52,17 @@ export interface NetworkSupport {
   network: string; // CAIP-2 identifier
   assets: string[];
 }
+
+// Payment Payload interface (signed by user)
+export interface PaymentPayload {
+  signature: string; // secp256k1 signature in hex format
+  payload: {
+    scheme: 'exact';
+    network: string; // CAIP-2 identifier (e.g., 'vechain:100009')
+    payTo: string; // recipient address
+    amount: string; // amount in wei
+    asset: string; // token address or 'native'
+    nonce: string; // unique nonce for replay protection
+    validUntil: number; // Unix timestamp
+  };
+}
