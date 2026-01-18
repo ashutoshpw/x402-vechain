@@ -11,11 +11,13 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@hono/zod-validator": "^0.7.6",
+    "@vechain/sdk-core": "^1.2.0",
+    "@vechain/sdk-network": "^1.2.0",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.1",
-    "postgres": "^3.4.8",
-    "@hono/zod-validator": "^0.7.6",
     "hono": "^4.11.4",
+    "postgres": "^3.4.8",
     "zod": "^4.3.5"
   },
   "devDependencies": {

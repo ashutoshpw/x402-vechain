@@ -43,8 +43,10 @@ const envSchema = z.object({
   
   FEE_DELEGATION_PRIVATE_KEY: z
     .string()
-    .regex(/^[a-fA-F0-9]{64}$/)
     .optional()
+    .refine((val) => !val || /^[a-fA-F0-9]{64}$/.test(val), {
+      message: 'Private key must be a 64-character hexadecimal string',
+    })
     .describe('Private key for fee delegation (64-character hex string)'),
 
   // Database Configuration
@@ -66,8 +68,10 @@ const envSchema = z.object({
   // Authentication
   JWT_SECRET: z
     .string()
-    .min(32)
     .optional()
+    .refine((val) => !val || val.length >= 32, {
+      message: 'JWT secret must be at least 32 characters',
+    })
     .describe('Secret key for JWT token generation'),
 
   // Rate Limiting

@@ -7,6 +7,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { VerifyRequestSchema, SettleRequestSchema } from '../schemas/x402.js';
 import type { VerifyResponse, SettleResponse, SupportedResponse, PaymentOption } from '../types/x402.js';
+import { veChainService } from '../services/VeChainService.js';
 
 const x402Routes = new Hono();
 
@@ -68,6 +69,56 @@ x402Routes.post('/verify', zValidator('json', VerifyRequestSchema), async (c) =>
         const response: VerifyResponse = {
           isValid: false,
           invalidReason: 'Payment requirements have expired',
+        };
+        return c.json(response, 400);
+      }
+    }
+
+    // If payload contains a transaction hash, verify it on-chain
+    if (parsedPayload.transactionHash) {
+      try {
+        const receipt = await veChainService.verifyTransaction(parsedPayload.transactionHash);
+        
+        // Check if transaction was reverted
+        if (receipt.reverted) {
+          const response: VerifyResponse = {
+            isValid: false,
+            invalidReason: 'Transaction was reverted on-chain',
+          };
+          return c.json(response, 400);
+        }
+
+        // Decode transaction to extract payment details
+        const paymentDetails = await veChainService.decodeTransaction(parsedPayload.transactionHash);
+        
+        // Validate payment matches requirements
+        const matchingOption = paymentRequirements.paymentOptions.find(
+          (option: PaymentOption) => {
+            // Check if recipient matches
+            const recipientMatches = option.recipient.toLowerCase() === paymentDetails.to.toLowerCase();
+            
+            // Check if amount matches (convert option.amount to bigint)
+            const requiredAmount = BigInt(option.amount);
+            const amountMatches = paymentDetails.amount >= requiredAmount;
+            
+            // Check if token matches
+            const tokenMatches = option.asset.toUpperCase() === paymentDetails.token.toUpperCase();
+            
+            return recipientMatches && amountMatches && tokenMatches;
+          }
+        );
+
+        if (!matchingOption) {
+          const response: VerifyResponse = {
+            isValid: false,
+            invalidReason: 'Transaction does not match any payment requirements',
+          };
+          return c.json(response, 400);
+        }
+      } catch (error) {
+        const response: VerifyResponse = {
+          isValid: false,
+          invalidReason: `Transaction verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         };
         return c.json(response, 400);
       }
@@ -135,22 +186,102 @@ x402Routes.post('/settle', zValidator('json', SettleRequestSchema), async (c) =>
       return c.json(response, 400);
     }
 
-    // TODO: Implement actual VeChain transaction submission
-    // For now, return a mock successful response
-    // In production, this would:
-    // 1. Connect to VeChain network
-    // 2. Submit the transaction
-    // 3. Wait for confirmation
-    // 4. Return transaction hash
+    // Handle transaction submission
+    let txHash: string;
+    
+    if (parsedPayload.signedTransaction) {
+      // Submit a pre-signed transaction
+      try {
+        txHash = await veChainService.submitTransaction(parsedPayload.signedTransaction);
+      } catch (error) {
+        const response: SettleResponse = {
+          success: false,
+          networkId: matchingOption.network,
+          error: `Failed to submit transaction: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        };
+        return c.json(response, 500);
+      }
+    } else if (parsedPayload.transactionHash) {
+      // Verify an already submitted transaction
+      txHash = parsedPayload.transactionHash;
+      
+      try {
+        const receipt = await veChainService.verifyTransaction(txHash);
+        
+        // Check if transaction was reverted
+        if (receipt.reverted) {
+          const response: SettleResponse = {
+            success: false,
+            networkId: matchingOption.network,
+            transactionHash: txHash,
+            error: 'Transaction was reverted on-chain',
+          };
+          return c.json(response, 400);
+        }
+      } catch (error) {
+        const response: SettleResponse = {
+          success: false,
+          networkId: matchingOption.network,
+          transactionHash: txHash,
+          error: `Failed to verify transaction: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        };
+        return c.json(response, 400);
+      }
+    } else {
+      const response: SettleResponse = {
+        success: false,
+        networkId: matchingOption.network,
+        error: 'Payment payload must contain either signedTransaction or transactionHash',
+      };
+      return c.json(response, 400);
+    }
 
-    // Mock transaction hash for demonstration
-    const mockTxHash = '0x' + Array.from({ length: TX_HASH_LENGTH }, () => 
-      Math.floor(Math.random() * 16).toString(16)
-    ).join('');
+    // Wait for transaction confirmation (1 confirmation by default)
+    const confirmed = await veChainService.waitForConfirmation(txHash, 1);
+    
+    if (!confirmed) {
+      const response: SettleResponse = {
+        success: false,
+        networkId: matchingOption.network,
+        transactionHash: txHash,
+        error: 'Transaction confirmation timeout or reverted',
+      };
+      return c.json(response, 408);
+    }
 
+    // Verify payment details match requirements
+    try {
+      const paymentDetails = await veChainService.decodeTransaction(txHash);
+      
+      // Validate payment matches requirements
+      const recipientMatches = matchingOption.recipient.toLowerCase() === paymentDetails.to.toLowerCase();
+      const requiredAmount = BigInt(matchingOption.amount);
+      const amountMatches = paymentDetails.amount >= requiredAmount;
+      const tokenMatches = matchingOption.asset.toUpperCase() === paymentDetails.token.toUpperCase();
+      
+      if (!recipientMatches || !amountMatches || !tokenMatches) {
+        const response: SettleResponse = {
+          success: false,
+          networkId: matchingOption.network,
+          transactionHash: txHash,
+          error: 'Transaction does not match payment requirements',
+        };
+        return c.json(response, 400);
+      }
+    } catch (error) {
+      const response: SettleResponse = {
+        success: false,
+        networkId: matchingOption.network,
+        transactionHash: txHash,
+        error: `Failed to decode transaction: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+      return c.json(response, 500);
+    }
+
+    // Settlement successful
     const response: SettleResponse = {
       success: true,
-      transactionHash: mockTxHash,
+      transactionHash: txHash,
       networkId: matchingOption.network,
     };
     return c.json(response, 200);
