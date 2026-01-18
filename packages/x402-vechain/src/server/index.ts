@@ -121,16 +121,32 @@ export interface EnhancedPaymentMiddlewareOptions {
 /**
  * Convert price in token units to wei
  * VeChain uses 18 decimals for VET and VTHO
+ * Uses string-based arithmetic to avoid floating-point precision issues
  */
 function priceToWei(price: string, decimals: number = 18): string {
-  // Parse the price as a float
+  // Validate input
+  if (!/^\d+(\.\d+)?$/.test(price)) {
+    throw new Error(`Invalid price format: ${price}. Expected decimal number (e.g., "0.01", "1.5")`);
+  }
+
   const priceFloat = parseFloat(price);
   if (isNaN(priceFloat) || priceFloat < 0) {
     throw new Error(`Invalid price: ${price}`);
   }
 
-  // Convert to wei (multiply by 10^decimals)
-  const weiAmount = BigInt(Math.floor(priceFloat * Math.pow(10, decimals)));
+  // Split into integer and decimal parts
+  const parts = price.split('.');
+  const integerPart = parts[0] || '0';
+  const decimalPart = parts[1] || '';
+  
+  // Pad or trim decimal part to match decimals
+  const paddedDecimal = decimalPart.padEnd(decimals, '0').slice(0, decimals);
+  
+  // Combine into wei amount
+  const weiString = integerPart + paddedDecimal;
+  
+  // Convert to BigInt and remove leading zeros
+  const weiAmount = BigInt(weiString);
   return weiAmount.toString();
 }
 
@@ -363,6 +379,22 @@ async function verifyWithFacilitator(
 }
 
 /**
+ * Type guard to check if value is a RoutePaymentConfig
+ */
+function isRoutePaymentConfig(value: unknown): value is RoutePaymentConfig {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const config = value as Record<string, unknown>;
+  return (
+    typeof config.price === 'string' &&
+    typeof config.token === 'string' &&
+    typeof config.network === 'string' &&
+    typeof config.payTo === 'string'
+  );
+}
+
+/**
  * Hono middleware for x402 payment verification
  * 
  * Supports two usage patterns:
@@ -393,15 +425,17 @@ async function verifyWithFacilitator(
 export function paymentMiddleware(
   options: RoutePaymentMap | PaymentMiddlewareOptions | EnhancedPaymentMiddlewareOptions
 ): MiddlewareHandler {
-  // Detect which API is being used
-  const isRouteMap = !('getPaymentRequirements' in options) && 
-                     !('routes' in options) &&
+  // Detect which API is being used based on structure
+  const hasGetPaymentRequirements = 'getPaymentRequirements' in options;
+  const hasRoutesProperty = 'routes' in options;
+  
+  // Check if it's a route map (direct route configs as keys)
+  const isRouteMap = !hasGetPaymentRequirements && 
+                     !hasRoutesProperty &&
                      Object.keys(options).length > 0 &&
-                     typeof Object.values(options)[0] === 'object';
+                     Object.values(options).every(value => isRoutePaymentConfig(value));
   
-  const isEnhancedOptions = 'routes' in options;
-  
-  // Convert route map to enhanced options if needed
+  // Convert to enhanced options based on detected format
   let enhancedOptions: EnhancedPaymentMiddlewareOptions;
   
   if (isRouteMap) {
@@ -409,10 +443,10 @@ export function paymentMiddleware(
     enhancedOptions = {
       routes: options as RoutePaymentMap,
     };
-  } else if (isEnhancedOptions) {
+  } else if (hasRoutesProperty) {
     // Enhanced options with routes property
     enhancedOptions = options as EnhancedPaymentMiddlewareOptions;
-  } else {
+  } else if (hasGetPaymentRequirements) {
     // Old API: convert to enhanced options
     const oldOptions = options as PaymentMiddlewareOptions;
     enhancedOptions = {
@@ -420,6 +454,15 @@ export function paymentMiddleware(
       verifyPayment: oldOptions.verifyPayment,
       onPaymentVerified: oldOptions.onPaymentVerified,
     };
+  } else {
+    // Invalid configuration
+    throw new Error(
+      'Invalid paymentMiddleware configuration. Expected either:\n' +
+      '  1. Route map: { "GET /path": { price: "0.01", token: "VET", ... } }\n' +
+      '  2. Enhanced options: { routes: {...}, facilitatorUrl: "..." }\n' +
+      '  3. Traditional options: { getPaymentRequirements: (c) => {...} }\n' +
+      'See documentation for examples.'
+    );
   }
   
   return async (c: Context, next: Next) => {
@@ -448,11 +491,8 @@ export function paymentMiddleware(
         facilitatorUrl = matchedConfig.facilitatorUrl;
       }
     } else {
-      // Old API - must have getPaymentRequirements
+      // Old API - getPaymentRequirements is guaranteed to exist due to validation above
       const oldOptions = options as PaymentMiddlewareOptions;
-      if (!oldOptions.getPaymentRequirements) {
-        throw new Error('paymentMiddleware requires either route map or getPaymentRequirements option');
-      }
       requirements = await oldOptions.getPaymentRequirements(c);
     }
     
