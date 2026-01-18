@@ -14,6 +14,11 @@ import {
 } from '@vechain/sdk-network';
 import { Address, type Hex, type TransactionClause } from '@vechain/sdk-core';
 import { env, getVeChainRpcUrl } from '../config/env.js';
+import {
+  VECHAIN_TOKENS,
+  VECHAIN_CONTRACTS,
+  VECHAIN_TIMING,
+} from '../config/vechain.js';
 
 /**
  * Decoded payment details from a VeChain transaction
@@ -31,12 +36,6 @@ export interface PaymentDetails {
  */
 export class VeChainService {
   private thorClient: ThorClient;
-  private readonly BLOCK_TIME_MS = 10000; // 10 seconds
-  private readonly VET_TOKEN = 'VET';
-  private readonly VTHO_TOKEN = 'VTHO';
-  
-  // VeThor (VTHO) token contract address on VeChain
-  private readonly VTHO_CONTRACT_ADDRESS = '0x0000000000000000000000000000456E65726779';
 
   constructor() {
     const rpcUrl = getVeChainRpcUrl();
@@ -109,14 +108,14 @@ export class VeChainService {
       // Validate and format address
       const formattedAddress = Address.of(address);
       
-      if (token.toUpperCase() === this.VET_TOKEN) {
+      if (token.toUpperCase() === VECHAIN_TOKENS.VET) {
         // Get VET balance from account
         const account = await this.thorClient.accounts.getAccount(formattedAddress);
         if (!account) {
           throw new Error(`Account not found: ${address}`);
         }
         return BigInt(account.balance);
-      } else if (token.toUpperCase() === this.VTHO_TOKEN) {
+      } else if (token.toUpperCase() === VECHAIN_TOKENS.VTHO) {
         // Get VTHO balance from energy field
         const account = await this.thorClient.accounts.getAccount(formattedAddress);
         if (!account) {
@@ -125,7 +124,7 @@ export class VeChainService {
         return BigInt(account.energy);
       } else {
         // For other tokens, would need to call balanceOf on the token contract
-        // This requires ABI encoding/decoding which is more complex
+        // This requires ABI encoding/decoding which would need additional implementation
         throw new Error(`Token balance queries for custom tokens not yet implemented: ${token}`);
       }
     } catch (error) {
@@ -143,15 +142,14 @@ export class VeChainService {
    */
   async waitForConfirmation(
     txHash: string,
-    confirmations: number = 1
+    confirmations: number = VECHAIN_TIMING.DEFAULT_CONFIRMATIONS
   ): Promise<boolean> {
     try {
       // Ensure txHash has 0x prefix
       const formattedTxHash = txHash.startsWith('0x') ? txHash : `0x${txHash}`;
       
-      // Maximum wait time: 5 minutes (30 blocks at 10 seconds each)
-      const maxAttempts = 30;
-      const pollInterval = this.BLOCK_TIME_MS;
+      const maxAttempts = VECHAIN_TIMING.MAX_CONFIRMATION_ATTEMPTS;
+      const pollInterval = VECHAIN_TIMING.BLOCK_TIME_MS;
       
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
         const receipt = await this.thorClient.transactions.getTransactionReceipt(
@@ -220,18 +218,18 @@ export class VeChainService {
       const firstClause = tx.clauses[0];
       
       // Determine token type based on clause
-      let token = this.VET_TOKEN;
+      let token = VECHAIN_TOKENS.VET;
       let amount = BigInt(0);
       let to = firstClause.to || '0x0000000000000000000000000000000000000000';
       
       if (firstClause.value && BigInt(firstClause.value) > 0n) {
         // VET transfer
-        token = this.VET_TOKEN;
+        token = VECHAIN_TOKENS.VET;
         amount = BigInt(firstClause.value);
       } else if (firstClause.data && firstClause.data !== '0x') {
-        // Possible token transfer - would need ABI decoding
-        // For now, we'll mark it as a contract interaction
-        token = firstClause.to || 'UNKNOWN';
+        // Contract interaction - could be a token transfer
+        // Note: Full token transfer decoding would require ABI parsing
+        token = VECHAIN_TOKENS.CONTRACT_INTERACTION;
         amount = BigInt(0);
       }
       

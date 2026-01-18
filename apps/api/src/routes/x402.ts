@@ -8,11 +8,15 @@ import { zValidator } from '@hono/zod-validator';
 import { VerifyRequestSchema, SettleRequestSchema } from '../schemas/x402.js';
 import type { VerifyResponse, SettleResponse, SupportedResponse, PaymentOption } from '../types/x402.js';
 import { veChainService } from '../services/VeChainService.js';
+import { VECHAIN_NETWORKS, VECHAIN_TIMING } from '../config/vechain.js';
 
 const x402Routes = new Hono();
 
-// Constants
-const TX_HASH_LENGTH = 64;
+// Supported networks
+const SUPPORTED_NETWORKS = [VECHAIN_NETWORKS.TESTNET];
+
+// Configurable confirmation count (can be overridden via env or per-request)
+const DEFAULT_CONFIRMATIONS = VECHAIN_TIMING.DEFAULT_CONFIRMATIONS;
 
 /**
  * POST /verify
@@ -47,9 +51,8 @@ x402Routes.post('/verify', zValidator('json', VerifyRequestSchema), async (c) =>
     }
 
     // Check if any payment option matches supported networks
-    const supportedNetworks = ['eip155:100009']; // VeChain testnet
     const hasValidNetwork = paymentRequirements.paymentOptions.some(
-      (option: PaymentOption) => supportedNetworks.includes(option.network)
+      (option: PaymentOption) => SUPPORTED_NETWORKS.includes(option.network)
     );
 
     if (!hasValidNetwork) {
@@ -165,22 +168,21 @@ x402Routes.post('/settle', zValidator('json', SettleRequestSchema), async (c) =>
     if (!paymentRequirements.paymentOptions || paymentRequirements.paymentOptions.length === 0) {
       const response: SettleResponse = {
         success: false,
-        networkId: 'eip155:100009',
+        networkId: VECHAIN_NETWORKS.TESTNET,
         error: 'No payment options provided',
       };
       return c.json(response, 400);
     }
 
     // Check for supported network (VeChain)
-    const supportedNetworks = ['eip155:100009']; // VeChain testnet
     const matchingOption = paymentRequirements.paymentOptions.find(
-      (option: PaymentOption) => supportedNetworks.includes(option.network)
+      (option: PaymentOption) => SUPPORTED_NETWORKS.includes(option.network)
     );
 
     if (!matchingOption) {
       const response: SettleResponse = {
         success: false,
-        networkId: 'eip155:100009',
+        networkId: VECHAIN_NETWORKS.TESTNET,
         error: 'No supported network found in payment options',
       };
       return c.json(response, 400);
@@ -236,8 +238,8 @@ x402Routes.post('/settle', zValidator('json', SettleRequestSchema), async (c) =>
       return c.json(response, 400);
     }
 
-    // Wait for transaction confirmation (1 confirmation by default)
-    const confirmed = await veChainService.waitForConfirmation(txHash, 1);
+    // Wait for transaction confirmation (using configurable confirmation count)
+    const confirmed = await veChainService.waitForConfirmation(txHash, DEFAULT_CONFIRMATIONS);
     
     if (!confirmed) {
       const response: SettleResponse = {
@@ -288,7 +290,7 @@ x402Routes.post('/settle', zValidator('json', SettleRequestSchema), async (c) =>
   } catch (error) {
     const response: SettleResponse = {
       success: false,
-      networkId: 'eip155:100009',
+      networkId: VECHAIN_NETWORKS.TESTNET,
       error: `Settlement error: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
     return c.json(response, 500);
@@ -303,7 +305,7 @@ x402Routes.get('/supported', (c) => {
   const response: SupportedResponse = {
     networks: [
       {
-        network: 'eip155:100009', // VeChain testnet (CAIP-2 format)
+        network: VECHAIN_NETWORKS.TESTNET, // VeChain testnet (CAIP-2 format)
         assets: [
           'VET',  // VeChain native token
           'VTHO', // VeThor token
