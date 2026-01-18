@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.js'
 import feeDelegationRoutes from './routes/feeDelegation.js'
 import transactionsRoutes from './routes/transactions.js'
 import analyticsRoutes from './routes/analytics.js'
+import apiKeyRoutes from './routes/apiKeys.js'
 
 const app = new Hono()
 
@@ -14,8 +15,8 @@ const app = new Hono()
 // In production, replace '*' with specific allowed origins
 app.use('/*', cors({
   origin: '*',
-  allowMethods: ['GET', 'POST', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
+  allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-User-ID'],
   exposeHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
   maxAge: 86400, // 24 hours
   credentials: true, // Allow cookies
@@ -41,7 +42,12 @@ app.get('/', (c) => {
       'GET /fee-delegation/stats/:address',
       'GET /fee-delegation/total-spent',
       'GET /transactions',
-      'GET /analytics/stats'
+      'GET /analytics/stats',
+      'GET /api/keys',
+      'POST /api/keys',
+      'PATCH /api/keys/:id',
+      'DELETE /api/keys/:id',
+      'GET /api/keys/:id/stats'
     ]
   })
 })
@@ -60,6 +66,9 @@ app.route('/', transactionsRoutes)
 
 // Mount analytics routes
 app.route('/', analyticsRoutes)
+
+// Mount API key management routes
+app.route('/api/keys', apiKeyRoutes)
 
 // Error handling
 app.onError(errorHandler)
