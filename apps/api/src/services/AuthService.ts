@@ -77,10 +77,15 @@ export async function verifySignature(
     // Reconstruct the message that was signed
     const message = `Sign this message to authenticate with x402 VeChain Dashboard\n\nWallet: ${walletAddress}\nNonce: ${nonce}\nExpires: ${nonceRecord.expiresAt.toISOString()}`
 
-    // For now, we'll use a simplified verification
-    // In production, you should properly verify the signature using VeChain SDK
-    // The signature verification would recover the address from the signature
-    // and compare it with the provided wallet address
+    // TODO: SECURITY CRITICAL - Implement proper ECDSA signature verification
+    // Current simplified verification is NOT secure for production use.
+    // Must implement proper signature recovery to verify the signing address:
+    // 1. Hash the message with keccak256
+    // 2. Recover the public key from the signature
+    // 3. Derive the address from the recovered public key
+    // 4. Compare the recovered address with the provided wallet address
+    // This requires VeChain SDK's secp256k1 recovery functions.
+    // For now, we only validate format to allow development/testing.
     
     // Basic validation: signature should be a hex string
     const cleanSignature = signature.replace('0x', '')
@@ -135,9 +140,8 @@ export async function verifySignature(
  * Generate JWT token for authenticated user
  */
 export function generateToken(userId: string, walletAddress: string): string {
-  if (!env.JWT_SECRET) {
-    throw new Error('JWT_SECRET is not configured')
-  }
+  // JWT_SECRET is validated at application startup in env.ts
+  // No need for runtime check here
 
   // Create a simple JWT payload
   const header = {
@@ -174,10 +178,8 @@ export function verifyToken(token: string): {
   error?: string
 } {
   try {
-    if (!env.JWT_SECRET) {
-      throw new Error('JWT_SECRET is not configured')
-    }
-
+    // JWT_SECRET is validated at application startup in env.ts
+    
     const parts = token.split('.')
     if (parts.length !== 3) {
       return { valid: false, error: 'Invalid token format' }
