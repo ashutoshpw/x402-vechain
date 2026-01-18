@@ -11,6 +11,6 @@
   "dependencies": {
     "api": "workspace:*",
     "astro": "^5.16.8",
-    "hono": "^4.11.3"
+    "hono": "^4.11.4"
   }
 }
