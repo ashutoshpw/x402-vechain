@@ -141,11 +141,14 @@ export async function cacheNonce(walletAddress: string, nonce: string, validUnti
 
 /**
  * Create hash of payload for signature verification
+ * Uses deterministic JSON serialization by explicitly ordering object keys
  * @param payload Payment payload data
  * @returns Hash of the payload
  */
 function hashPayload(payload: PaymentPayload['payload']): Uint8Array {
   // Create deterministic JSON string for hashing
+  // Note: Using object literal with explicit key order ensures deterministic serialization
+  // across all JavaScript engines, as JSON.stringify maintains insertion order for objects
   const message = JSON.stringify({
     scheme: payload.scheme,
     network: payload.network,
@@ -230,7 +233,8 @@ export async function verifyPaymentPayload(
     const normalizedNetwork = normalizeNetworkIdentifier(payload.network);
     
     // Check if network is supported (using shared configuration)
-    if (!SUPPORTED_NETWORKS.includes(normalizedNetwork as any)) {
+    // Type assertion is safe here as SUPPORTED_NETWORKS is readonly array of strings
+    if (!(SUPPORTED_NETWORKS as readonly string[]).includes(normalizedNetwork)) {
       return {
         isValid: false,
         error: `Unsupported network: ${payload.network}`,
@@ -284,9 +288,10 @@ export async function verifyPaymentPayload(
       
       const networkMatches = optionNetwork === payloadNetwork;
       const recipientMatches = option.recipient.toLowerCase() === payload.payTo.toLowerCase();
-      // Note: Using >= allows overpayment. For the 'exact' scheme, this means
-      // the user can pay more than required, which is acceptable for most use cases.
-      // If strict exact amount matching is needed, change to: BigInt(payload.amount) === BigInt(option.amount)
+      // Note: The 'exact' scheme means exact payment requirements (not ranges/approximations),
+      // but allows overpayment (>= comparison). This is standard behavior - users can pay
+      // more than required, but not less. For strict exact amount matching, use:
+      // const amountMatches = BigInt(payload.amount) === BigInt(option.amount);
       const amountMatches = BigInt(payload.amount) >= BigInt(option.amount);
       
       // Asset matching (handle 'native' and token symbols)
