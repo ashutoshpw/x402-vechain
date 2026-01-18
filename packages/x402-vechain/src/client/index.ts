@@ -160,8 +160,8 @@ export async function x402Fetch(
     });
 
     if (!verifyResponse.ok) {
-      const errorData = await verifyResponse.json().catch(() => ({}));
-      throw new Error(`Payment verification failed: ${errorData.invalidReason || verifyResponse.statusText}`);
+      const errorData = await verifyResponse.json().catch(() => ({ invalidReason: verifyResponse.statusText }));
+      throw new Error(`Payment verification failed: ${errorData.invalidReason || 'Unknown error'}`);
     }
 
     // Settle payment with facilitator
@@ -177,8 +177,8 @@ export async function x402Fetch(
     });
 
     if (!settleResponse.ok) {
-      const errorData = await settleResponse.json().catch(() => ({}));
-      throw new Error(`Payment settlement failed: ${errorData.error || settleResponse.statusText}`);
+      const errorData = await settleResponse.json().catch(() => ({ error: settleResponse.statusText }));
+      throw new Error(`Payment settlement failed: ${errorData.error || 'Unknown error'}`);
     }
 
     const settlementResult = await settleResponse.json();

@@ -116,11 +116,13 @@ async function basicVerifyPayment(
     const networkMatches = option.network === paymentData.network;
     const recipientMatches = option.recipient.toLowerCase() === paymentData.payTo.toLowerCase();
     
+    // Amount validation with error handling for invalid numbers
     let amountMatches = false;
     try {
       amountMatches = BigInt(paymentData.amount) >= BigInt(option.amount);
     } catch {
-      return false;
+      // Invalid number format - this option doesn't match
+      amountMatches = false;
     }
 
     const assetMatches = option.asset.toLowerCase() === paymentData.asset.toLowerCase() ||
