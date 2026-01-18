@@ -54,7 +54,41 @@ const response = await x402Fetch('https://api.example.com/premium-data', {
 
 ## Server-Side Usage (Hono)
 
-### Basic Example
+### Route-Based Configuration (New, Easiest!)
+
+```typescript
+import { Hono } from 'hono';
+import { paymentMiddleware } from '@x402/vechain';
+
+const app = new Hono();
+
+// Protect routes with simple config
+app.use(paymentMiddleware({
+  "GET /api/premium": {
+    price: "0.01",           // Simple decimal price
+    token: "VET",            // Token symbol
+    network: "vechain:100009", // VeChain testnet
+    payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+    facilitatorUrl: "https://facilitator.example.com"
+  },
+  "POST /api/data": {
+    price: "0.05",
+    token: "VEUSD",
+    network: "vechain:100009",
+    payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+    facilitatorUrl: "https://facilitator.example.com"
+  }
+}));
+
+// Protected routes
+app.get('/api/premium', (c) => {
+  return c.json({ data: 'Premium content' });
+});
+
+export default app;
+```
+
+### Traditional Configuration (More Control)
 
 ```typescript
 import { Hono } from 'hono';
@@ -85,24 +119,22 @@ export default app;
 
 ## Common Scenarios
 
-### 1. Pay-Per-Request API
+### 1. Route-Based Pay-Per-Request API
 
 ```typescript
-app.use('/api/expensive', paymentMiddleware({
-  facilitatorUrl: FACILITATOR_URL,
-  getPaymentRequirements: () => ({
-    paymentOptions: [{
-      network: 'eip155:100009',
-      asset: 'VET',
-      amount: '100000000000000000', // 0.1 VET
-      recipient: MERCHANT_ADDRESS,
-    }],
-    merchantId: 'api-service',
-  }),
+// New simplified API
+app.use(paymentMiddleware({
+  "GET /api/expensive": {
+    price: "0.1",      // 0.1 VET
+    token: "VET",
+    network: "vechain:100009",
+    payTo: MERCHANT_ADDRESS,
+    facilitatorUrl: FACILITATOR_URL,
+  }
 }));
 ```
 
-### 2. Dynamic Pricing
+### 2. Dynamic Pricing (Traditional API)
 
 ```typescript
 app.use('/content/:type', paymentMiddleware({
@@ -128,28 +160,47 @@ app.use('/content/:type', paymentMiddleware({
 }));
 ```
 
-### 3. Multi-Token Support
+### 3. Multiple Routes with Different Tokens
 
 ```typescript
-app.use('/premium/*', paymentMiddleware({
-  facilitatorUrl: FACILITATOR_URL,
-  getPaymentRequirements: () => ({
-    paymentOptions: [
-      {
-        network: 'eip155:100009',
-        asset: 'VET',
-        amount: '1000000000000000000', // 1 VET
-        recipient: MERCHANT_ADDRESS,
-      },
-      {
-        network: 'eip155:100009',
-        asset: 'VTHO',
-        amount: '5000000000000000000', // 5 VTHO
-        recipient: MERCHANT_ADDRESS,
-      },
-    ],
-    merchantId: 'multi-token-service',
-  }),
+// Route-based API makes this easy!
+app.use(paymentMiddleware({
+  "GET /vet-content": {
+    price: "1",
+    token: "VET",
+    network: "vechain:100009",
+    payTo: MERCHANT_ADDRESS,
+    facilitatorUrl: FACILITATOR_URL,
+  },
+  "GET /vtho-content": {
+    price: "10",
+    token: "VTHO",
+    network: "vechain:100009",
+    payTo: MERCHANT_ADDRESS,
+    facilitatorUrl: FACILITATOR_URL,
+  },
+  "GET /stable-content": {
+    price: "0.5",
+    token: "VEUSD",
+    network: "vechain:100009",
+    payTo: MERCHANT_ADDRESS,
+    facilitatorUrl: FACILITATOR_URL,
+  },
+}));
+```
+
+### 4. Wildcard Route Protection
+
+```typescript
+app.use(paymentMiddleware({
+  // Protect all routes under /premium/
+  "GET /premium/*": {
+    price: "0.01",
+    token: "VET",
+    network: "vechain:100009",
+    payTo: MERCHANT_ADDRESS,
+    facilitatorUrl: FACILITATOR_URL,
+  }
 }));
 ```
 
