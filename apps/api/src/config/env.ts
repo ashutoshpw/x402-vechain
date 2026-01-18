@@ -49,7 +49,9 @@ const envSchema = z.object({
   // Database Configuration
   DATABASE_URL: z
     .union([
-      z.string().regex(/^postgresql:\/\/.+/, 'Must be a valid PostgreSQL connection URL starting with postgresql://'),
+      z.string()
+        .url()
+        .regex(/^postgresql:\/\//, 'Must be a valid PostgreSQL connection URL starting with postgresql://'),
       z.literal(''),
       z.undefined()
     ])
