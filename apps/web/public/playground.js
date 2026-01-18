@@ -4,7 +4,6 @@
 // Playground JavaScript - Client-side only
 
 // State management
-let walletAdapter = null;
 let connectedAddress = null;
 let paymentRequirements = null;
 
@@ -247,23 +246,39 @@ async function signAndSubmitPayment() {
 
     statusEl.textContent = 'Submitting payment to facilitator...';
 
-    // Submit to facilitator (mock for now)
-    const facilitatorUrl = 'http://localhost:3000';
-    const response = await fetch(facilitatorUrl + '/settle', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        paymentPayload: btoa(JSON.stringify({
-          signature,
-          payload: paymentPayload
-        })),
-        paymentRequirements
-      })
-    });
+    // Submit to facilitator
+    // In production, this should be configured via environment variable
+    const facilitatorUrl = window.location.origin.includes('localhost') 
+      ? 'http://localhost:3000' 
+      : window.location.origin.replace('//web.', '//api.');
+    
+    try {
+      const payloadData = {
+        signature,
+        payload: paymentPayload
+      };
+      
+      // Safe base64 encoding with error handling
+      let encodedPayload;
+      try {
+        encodedPayload = btoa(JSON.stringify(payloadData));
+      } catch (e) {
+        // Fallback for non-ASCII characters
+        encodedPayload = btoa(unescape(encodeURIComponent(JSON.stringify(payloadData))));
+      }
+      
+      const response = await fetch(facilitatorUrl + '/settle', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          paymentPayload: encodedPayload,
+          paymentRequirements
+        })
+      });
 
-    const result = await response.json();
+      const result = await response.json();
 
     if (result.success && result.transactionHash) {
       statusEl.textContent = 'Payment successful!';
