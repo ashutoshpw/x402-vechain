@@ -1,16 +1,7 @@
 import type { Config } from 'drizzle-kit'
-import { config } from 'dotenv'
+import { getDatabaseUrl } from './src/config/env.js'
 
-config()
-
-const network = process.env.VECHAIN_NETWORK || 'testnet'
-const connectionString = network === 'mainnet'
-  ? process.env.DATABASE_URL_MAINNET || process.env.DATABASE_URL
-  : process.env.DATABASE_URL_TESTNET || process.env.DATABASE_URL
-
-if (!connectionString) {
-  throw new Error('Database URL not configured')
-}
+const connectionString = getDatabaseUrl()
 
 export default {
   schema: './src/db/schema.ts',
