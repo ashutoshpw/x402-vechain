@@ -1,6 +1,5 @@
 import { useState } from "react";
 import type { Route } from "./+types/api-keys";
-import { client } from "~/lib/api";
 
 // Mock user ID for development
 const MOCK_USER_ID = "550e8400-e29b-41d4-a716-446655440000";

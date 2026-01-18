@@ -6,7 +6,7 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
-import type { Context } from 'hono'
+import type { Context, Next } from 'hono'
 import {
   createApiKey,
   listUserApiKeys,
@@ -45,7 +45,7 @@ const UpdateApiKeySchema = z.object({
  * In a real implementation, this would validate JWT or session
  * For now, we'll use a header or create a mock user
  */
-const requireAuth = async (c: Context<{ Variables: Variables }>, next: any) => {
+const requireAuth = async (c: Context<{ Variables: Variables }>, next: Next) => {
   // TODO: Implement proper authentication
   // For now, check for X-User-ID header (development only)
   const userId = c.req.header('X-User-ID')
