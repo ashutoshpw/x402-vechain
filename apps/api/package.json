@@ -4,9 +4,17 @@
   "types": "./src/index.ts",
   "scripts": {
     "dev": "tsx watch src/dev.ts",
-    "build": "tsx src/index.ts"
+    "build": "tsx src/index.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "dotenv": "^17.2.3",
+    "drizzle-orm": "^0.45.1",
+    "hono": "^4.11.4",
+    "postgres": "^3.4.8"
     "@hono/zod-validator": "^0.7.6",
     "hono": "^4.11.3",
     "zod": "^4.3.5"
@@ -14,6 +22,7 @@
   "devDependencies": {
     "@hono/node-server": "^1.19.8",
     "@types/node": "^20.11.17",
+    "drizzle-kit": "^0.31.8",
     "tsx": "^4.7.1",
     "typescript": "^5.8.3"
   }
