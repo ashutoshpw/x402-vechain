@@ -29,13 +29,22 @@ x402Routes.post('/verify', zValidator('json', VerifyRequestSchema), async (c) =>
     const decodedPayload = Buffer.from(paymentPayload, 'base64').toString('utf-8');
     
     // Basic validation: Check if payload can be parsed
-    let parsedPayload: any;
+    let parsedPayload: unknown;
     try {
       parsedPayload = JSON.parse(decodedPayload);
     } catch (e) {
       const response: VerifyResponse = {
         isValid: false,
         invalidReason: 'Invalid payment payload: Unable to parse JSON',
+      };
+      return c.json(response, 400);
+    }
+
+    // Validate payload is an object
+    if (typeof parsedPayload !== 'object' || parsedPayload === null) {
+      const response: VerifyResponse = {
+        isValid: false,
+        invalidReason: 'Invalid payment payload: Must be an object',
       };
       return c.json(response, 400);
     }
@@ -63,11 +72,23 @@ x402Routes.post('/verify', zValidator('json', VerifyRequestSchema), async (c) =>
       }
     }
 
+    // Type guard for signed payment payload
+    const isSignedPayload = (obj: unknown): obj is PaymentPayload => {
+      return (
+        typeof obj === 'object' &&
+        obj !== null &&
+        'signature' in obj &&
+        'payload' in obj &&
+        typeof (obj as any).signature === 'string' &&
+        typeof (obj as any).payload === 'object'
+      );
+    };
+
     // Check if payload has signature (new payment payload format)
-    if (parsedPayload.signature && parsedPayload.payload) {
+    if (isSignedPayload(parsedPayload)) {
       // Verify signed payment payload
       const verificationResult = await verifyPaymentPayload(
-        parsedPayload as PaymentPayload,
+        parsedPayload,
         paymentRequirements.paymentOptions
       );
       
@@ -86,8 +107,18 @@ x402Routes.post('/verify', zValidator('json', VerifyRequestSchema), async (c) =>
       return c.json(response, 200);
     }
     
+    // Type guard for legacy transaction hash payload
+    const hasTransactionHash = (obj: unknown): obj is { transactionHash: string } => {
+      return (
+        typeof obj === 'object' &&
+        obj !== null &&
+        'transactionHash' in obj &&
+        typeof (obj as any).transactionHash === 'string'
+      );
+    };
+
     // Legacy: If payload contains a transaction hash, verify it on-chain
-    if (parsedPayload.transactionHash) {
+    if (hasTransactionHash(parsedPayload)) {
       // Check if any payment option matches supported networks
       const hasValidNetwork = paymentRequirements.paymentOptions.some(
         (option: PaymentOption) => SUPPORTED_NETWORKS.includes(option.network)

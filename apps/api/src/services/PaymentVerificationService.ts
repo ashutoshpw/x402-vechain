@@ -142,13 +142,18 @@ export async function cacheNonce(walletAddress: string, nonce: string, validUnti
 /**
  * Create hash of payload for signature verification
  * Uses deterministic JSON serialization by explicitly ordering object keys
+ * 
+ * IMPORTANT: This serialization method MUST match the client-side implementation
+ * for signature verification to work. The key order is critical.
+ * 
  * @param payload Payment payload data
  * @returns Hash of the payload
  */
 function hashPayload(payload: PaymentPayload['payload']): Uint8Array {
   // Create deterministic JSON string for hashing
   // Note: Using object literal with explicit key order ensures deterministic serialization
-  // across all JavaScript engines, as JSON.stringify maintains insertion order for objects
+  // Modern JavaScript engines (ES2015+) maintain insertion order for object properties
+  // This is safe as long as both client and server use the same key order
   const message = JSON.stringify({
     scheme: payload.scheme,
     network: payload.network,
@@ -174,8 +179,18 @@ function recoverSignerAddress(messageHash: Uint8Array, signature: string): strin
     // Remove 0x prefix if present
     const cleanSig = signature.startsWith('0x') ? signature.slice(2) : signature;
     
+    // Validate signature length (should be 130 hex characters = 65 bytes)
+    if (cleanSig.length !== 130) {
+      throw new Error(`Invalid signature length: expected 130 hex characters, got ${cleanSig.length}`);
+    }
+    
     // Convert signature to bytes
     const sigBytes = Hex.of(cleanSig).bytes;
+    
+    // Verify signature byte length
+    if (sigBytes.length !== 65) {
+      throw new Error(`Invalid signature byte length: expected 65 bytes, got ${sigBytes.length}`);
+    }
     
     // Recover public key from signature
     const publicKey = Secp256k1.recover(messageHash, sigBytes);
@@ -233,7 +248,6 @@ export async function verifyPaymentPayload(
     const normalizedNetwork = normalizeNetworkIdentifier(payload.network);
     
     // Check if network is supported (using shared configuration)
-    // Type assertion is safe here as SUPPORTED_NETWORKS is readonly array of strings
     if (!(SUPPORTED_NETWORKS as readonly string[]).includes(normalizedNetwork)) {
       return {
         isValid: false,
@@ -288,11 +302,19 @@ export async function verifyPaymentPayload(
       
       const networkMatches = optionNetwork === payloadNetwork;
       const recipientMatches = option.recipient.toLowerCase() === payload.payTo.toLowerCase();
-      // Note: The 'exact' scheme means exact payment requirements (not ranges/approximations),
-      // but allows overpayment (>= comparison). This is standard behavior - users can pay
-      // more than required, but not less. For strict exact amount matching, use:
-      // const amountMatches = BigInt(payload.amount) === BigInt(option.amount);
-      const amountMatches = BigInt(payload.amount) >= BigInt(option.amount);
+      
+      // Amount validation with error handling for invalid numbers
+      let amountMatches = false;
+      try {
+        // Note: The 'exact' scheme means exact payment requirements (not ranges/approximations),
+        // but allows overpayment (>= comparison). This is standard behavior - users can pay
+        // more than required, but not less. For strict exact amount matching, use:
+        // const amountMatches = BigInt(payload.amount) === BigInt(option.amount);
+        amountMatches = BigInt(payload.amount) >= BigInt(option.amount);
+      } catch (error) {
+        // Invalid number format - will not match
+        return false;
+      }
       
       // Asset matching (handle 'native' and token symbols)
       let assetMatches = false;
