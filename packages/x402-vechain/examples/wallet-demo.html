@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>x402-vechain Wallet Integration Demo</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 {
+      color: #2c3e50;
+    }
+    .section {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      border-left: 4px solid #3498db;
+    }
+    button {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 5px;
+    }
+    button:hover {
+      background: #2980b9;
+    }
+    button:disabled {
+      background: #95a5a6;
+      cursor: not-allowed;
+    }
+    .wallet-info {
+      background: white;
+      padding: 15px;
+      border-radius: 6px;
+      margin-top: 10px;
+    }
+    .success {
+      color: #27ae60;
+    }
+    .error {
+      color: #e74c3c;
+    }
+    code {
+      background: #ecf0f1;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+    }
+    pre {
+      background: #2c3e50;
+      color: #ecf0f1;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔗 x402-vechain Wallet Integration Demo</h1>
+  
+  <div class="section">
+    <h2>1. Detect Available Wallets</h2>
+    <p>Check which VeChain wallets are installed in your browser.</p>
+    <button onclick="detectAvailableWallets()">Detect Wallets</button>
+    <div id="wallet-detection" class="wallet-info"></div>
+  </div>
+
+  <div class="section">
+    <h2>2. Connect to Wallet</h2>
+    <p>Connect to an available VeChain wallet (VeWorld or Connex).</p>
+    <button onclick="connectWallet()">Auto-Connect Wallet</button>
+    <button onclick="connectVeWorld()">Connect VeWorld</button>
+    <button onclick="connectConnex()">Connect Connex</button>
+    <div id="connection-status" class="wallet-info"></div>
+  </div>
+
+  <div class="section">
+    <h2>3. Make Payment-Protected Request</h2>
+    <p>Fetch premium content that requires payment. The wallet will automatically sign the payment.</p>
+    <input type="text" id="api-url" placeholder="API URL (e.g., https://api.example.com/premium)" style="width: 100%; padding: 8px; margin-bottom: 10px;">
+    <input type="text" id="facilitator-url" placeholder="Facilitator URL (e.g., https://facilitator.example.com)" style="width: 100%; padding: 8px; margin-bottom: 10px;">
+    <input type="text" id="max-amount" placeholder="Max Amount in wei (e.g., 1000000000000000000 for 1 VET)" style="width: 100%; padding: 8px; margin-bottom: 10px;">
+    <button onclick="fetchPremiumContent()" id="fetch-btn" disabled>Fetch Premium Content</button>
+    <div id="fetch-result" class="wallet-info"></div>
+  </div>
+
+  <div class="section">
+    <h2>Usage Example</h2>
+    <pre><code>import { x402Fetch, autoDetectWallet } from '@x402/vechain';
+
+// Auto-detect wallet
+const wallet = autoDetectWallet();
+
+// Make request with automatic payment
+const response = await x402Fetch('https://api.example.com/premium', {
+  facilitatorUrl: 'https://facilitator.example.com',
+  wallet,
+  maxAmount: '1000000000000000000', // Max 1 VET
+});
+
+const data = await response.json();</code></pre>
+  </div>
+
+  <script type="module">
+    // Import from your built package or CDN
+    // For demo purposes, we'll show the structure
+    
+    let currentWallet = null;
+
+    window.detectAvailableWallets = function() {
+      const output = document.getElementById('wallet-detection');
+      
+      // Check for VeWorld
+      const hasVeWorld = typeof window.vechain !== 'undefined';
+      
+      // Check for Connex
+      const hasConnex = typeof window.connex !== 'undefined';
+      
+      const wallets = [];
+      if (hasVeWorld) wallets.push('VeWorld');
+      if (hasConnex) wallets.push('Connex (VeChain Sync/Sync2)');
+      
+      if (wallets.length > 0) {
+        output.innerHTML = `<div class="success">✅ Found: ${wallets.join(', ')}</div>`;
+      } else {
+        output.innerHTML = `<div class="error">❌ No VeChain wallets detected. Please install <a href="https://www.veworld.net/" target="_blank">VeWorld</a> or <a href="https://sync.vecha.in/" target="_blank">VeChain Sync</a>.</div>`;
+      }
+    };
+
+    window.connectWallet = async function() {
+      const output = document.getElementById('connection-status');
+      
+      try {
+        // Try VeWorld first
+        if (typeof window.vechain !== 'undefined') {
+          output.innerHTML = '<div>Connecting to VeWorld...</div>';
+          
+          // Request connection
+          await window.vechain.request({ method: 'wallet_connect' });
+          
+          // Get accounts
+          const accounts = await window.vechain.request({ method: 'wallet_getAccounts' });
+          
+          if (accounts && accounts.length > 0) {
+            currentWallet = { type: 'veworld', address: accounts[0] };
+            output.innerHTML = `<div class="success">✅ Connected to VeWorld<br>Address: <code>${accounts[0]}</code></div>`;
+            document.getElementById('fetch-btn').disabled = false;
+            return;
+          }
+        }
+        
+        // Try Connex
+        if (typeof window.connex !== 'undefined') {
+          output.innerHTML = '<div>Connecting to Connex...</div>';
+          
+          const certResponse = await window.connex.vendor.sign('cert', {
+            purpose: 'identification',
+            payload: {
+              type: 'text',
+              content: 'x402 Demo Connection'
+            }
+          }).request();
+          
+          if (certResponse && certResponse.annex && certResponse.annex.signer) {
+            currentWallet = { type: 'connex', address: certResponse.annex.signer };
+            output.innerHTML = `<div class="success">✅ Connected to Connex<br>Address: <code>${certResponse.annex.signer}</code></div>`;
+            document.getElementById('fetch-btn').disabled = false;
+            return;
+          }
+        }
+        
+        output.innerHTML = '<div class="error">❌ No wallet available. Please install VeWorld or VeChain Sync.</div>';
+      } catch (error) {
+        output.innerHTML = `<div class="error">❌ Connection failed: ${error.message}</div>`;
+      }
+    };
+
+    window.connectVeWorld = async function() {
+      const output = document.getElementById('connection-status');
+      
+      if (typeof window.vechain === 'undefined') {
+        output.innerHTML = '<div class="error">❌ VeWorld not detected. Please install the <a href="https://www.veworld.net/" target="_blank">VeWorld extension</a>.</div>';
+        return;
+      }
+      
+      try {
+        output.innerHTML = '<div>Connecting to VeWorld...</div>';
+        
+        await window.vechain.request({ method: 'wallet_connect' });
+        const accounts = await window.vechain.request({ method: 'wallet_getAccounts' });
+        
+        if (accounts && accounts.length > 0) {
+          currentWallet = { type: 'veworld', address: accounts[0] };
+          output.innerHTML = `<div class="success">✅ Connected to VeWorld<br>Address: <code>${accounts[0]}</code></div>`;
+          document.getElementById('fetch-btn').disabled = false;
+        }
+      } catch (error) {
+        output.innerHTML = `<div class="error">❌ Failed to connect: ${error.message}</div>`;
+      }
+    };
+
+    window.connectConnex = async function() {
+      const output = document.getElementById('connection-status');
+      
+      if (typeof window.connex === 'undefined') {
+        output.innerHTML = '<div class="error">❌ Connex not detected. Please use <a href="https://sync.vecha.in/" target="_blank">VeChain Sync</a>.</div>';
+        return;
+      }
+      
+      try {
+        output.innerHTML = '<div>Connecting to Connex...</div>';
+        
+        const certResponse = await window.connex.vendor.sign('cert', {
+          purpose: 'identification',
+          payload: {
+            type: 'text',
+            content: 'x402 Demo Connection'
+          }
+        }).request();
+        
+        if (certResponse && certResponse.annex && certResponse.annex.signer) {
+          currentWallet = { type: 'connex', address: certResponse.annex.signer };
+          output.innerHTML = `<div class="success">✅ Connected to Connex<br>Address: <code>${certResponse.annex.signer}</code></div>`;
+          document.getElementById('fetch-btn').disabled = false;
+        }
+      } catch (error) {
+        output.innerHTML = `<div class="error">❌ Failed to connect: ${error.message}</div>`;
+      }
+    };
+
+    window.fetchPremiumContent = async function() {
+      const output = document.getElementById('fetch-result');
+      const apiUrl = document.getElementById('api-url').value;
+      const facilitatorUrl = document.getElementById('facilitator-url').value;
+      const maxAmount = document.getElementById('max-amount').value;
+      
+      if (!currentWallet) {
+        output.innerHTML = '<div class="error">❌ Please connect a wallet first.</div>';
+        return;
+      }
+      
+      if (!apiUrl || !facilitatorUrl) {
+        output.innerHTML = '<div class="error">❌ Please enter API URL and Facilitator URL.</div>';
+        return;
+      }
+      
+      output.innerHTML = '<div>Making payment-protected request...</div>';
+      
+      try {
+        // NOTE: In a real implementation, you would use the x402Fetch from the SDK
+        // This is a demonstration of the flow
+        
+        output.innerHTML = `
+          <div class="success">✅ Ready to make request</div>
+          <div>API URL: <code>${apiUrl}</code></div>
+          <div>Facilitator: <code>${facilitatorUrl}</code></div>
+          <div>Max Amount: <code>${maxAmount || 'No limit'}</code></div>
+          <div>Wallet: <code>${currentWallet.address}</code></div>
+          <div style="margin-top: 10px;">
+            <strong>Next steps:</strong>
+            <ol>
+              <li>Import the SDK in your application</li>
+              <li>Use x402Fetch with your wallet adapter</li>
+              <li>The wallet will automatically sign payments when needed</li>
+            </ol>
+          </div>
+        `;
+      } catch (error) {
+        output.innerHTML = `<div class="error">❌ Request failed: ${error.message}</div>`;
+      }
+    };
+
+    // Auto-detect on load
+    window.addEventListener('load', () => {
+      detectAvailableWallets();
+    });
+  </script>
+</body>
+</html>

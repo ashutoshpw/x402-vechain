@@ -72,6 +72,16 @@ export interface X402FetchOptions extends RequestInit {
   facilitatorUrl: string;
   onPaymentRequired?: (requirements: PaymentRequirements) => Promise<PaymentPayload>;
   maxRetries?: number;
+  /** 
+   * Wallet adapter for signing payments (alternative to onPaymentRequired)
+   * When provided, payment will be automatically signed using the wallet
+   */
+  wallet?: any; // WalletAdapter type (imported at runtime to avoid circular dependency)
+  /**
+   * Maximum amount user is willing to pay (in wei)
+   * If payment requirement exceeds this, an error will be thrown
+   */
+  maxAmount?: string;
 }
 
 export interface CreatePaymentPayloadOptions {
