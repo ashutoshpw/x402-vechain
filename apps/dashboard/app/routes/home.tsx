@@ -1,23 +1,25 @@
 import type { Route } from "./+types/home";
-import { client } from "~/lib/api";
+import { useAuth } from "~/lib/auth";
+import { useNavigate } from "react-router";
+import { useEffect } from "react";
 
-export async function loader({ request }: Route.LoaderArgs) {
-  // 1. Fetch from Hono (Type-safe!)
-  const res = await client.index.$get();
+export default function Home({ }: Route.ComponentProps) {
+  const { isAuthenticated, isLoading } = useAuth();
+  const navigate = useNavigate();
 
-  if (!res.ok) {
-    throw new Response("Failed to fetch", { status: 500 });
-  }
+  useEffect(() => {
+    if (!isLoading) {
+      if (isAuthenticated) {
+        navigate('/dashboard');
+      } else {
+        navigate('/login');
+      }
+    }
+  }, [isAuthenticated, isLoading, navigate]);
 
-  const data = await res.json();
-  return { message: data.message };
-}
-
-export default function Home({ loaderData }: Route.ComponentProps) {
   return (
-    <div>
-      <h1>Dashboard</h1>
-      <p>Data from Hono: {loaderData.message}</p>
+    <div className="min-h-screen flex items-center justify-center">
+      <div>Loading...</div>
     </div>
   );
 }

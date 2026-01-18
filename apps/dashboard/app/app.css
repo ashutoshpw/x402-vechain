@@ -13,3 +13,20 @@ body {
     color-scheme: dark;
   }
 }
+
+/* Wallet Connector Styles */
+.wallet-connector {
+  @apply flex flex-col items-center space-y-4;
+}
+
+.wallet-connect-button {
+  @apply w-full px-6 py-3 text-base font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
+}
+
+.error-message {
+  @apply w-full p-4 bg-red-50 border border-red-200 rounded-lg;
+}
+
+.error-message p {
+  @apply text-sm text-red-600;
+}
