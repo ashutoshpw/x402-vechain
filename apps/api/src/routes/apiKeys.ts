@@ -6,6 +6,7 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
+import type { Context } from 'hono'
 import {
   createApiKey,
   listUserApiKeys,
@@ -17,7 +18,12 @@ import { db } from '../db/index.js'
 import { apiKeys, transactions } from '../db/schema.js'
 import { eq, and, sql, desc } from 'drizzle-orm'
 
-const apiKeyRoutes = new Hono()
+// Define context variables type
+type Variables = {
+  userId: string
+}
+
+const apiKeyRoutes = new Hono<{ Variables: Variables }>()
 
 // Validation schemas
 const CreateApiKeySchema = z.object({
@@ -39,7 +45,7 @@ const UpdateApiKeySchema = z.object({
  * In a real implementation, this would validate JWT or session
  * For now, we'll use a header or create a mock user
  */
-const requireAuth = async (c: any, next: any) => {
+const requireAuth = async (c: Context<{ Variables: Variables }>, next: any) => {
   // TODO: Implement proper authentication
   // For now, check for X-User-ID header (development only)
   const userId = c.req.header('X-User-ID')
