@@ -10,6 +10,7 @@ import { eq, and, isNull } from 'drizzle-orm'
 
 const API_KEY_PREFIX = 'xv_'
 const API_KEY_LENGTH = 32 // Length of the random part (will be 32 bytes = 64 hex chars)
+const KEY_PREFIX_DISPLAY_LENGTH = 5 // Number of characters to show after prefix for display
 
 /**
  * Generate a new API key with xv_ prefix
@@ -23,8 +24,8 @@ export function generateApiKey(): { fullKey: string; keyPrefix: string; keyHash:
   // Combine prefix with random part
   const fullKey = `${API_KEY_PREFIX}${randomPart}`
   
-  // Create prefix for display (first 8 characters after xv_)
-  const keyPrefix = `${API_KEY_PREFIX}${randomPart.substring(0, 5)}`
+  // Create prefix for display (first characters after xv_)
+  const keyPrefix = `${API_KEY_PREFIX}${randomPart.substring(0, KEY_PREFIX_DISPLAY_LENGTH)}`
   
   // Hash the full key for storage
   const keyHash = crypto.createHash('sha256').update(fullKey).digest('hex')
