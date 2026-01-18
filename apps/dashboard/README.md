@@ -1,87 +1,107 @@
-# Welcome to React Router!
+# x402 VeChain Dashboard
 
-A modern, production-ready template for building full-stack React applications using React Router.
-
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
+Web dashboard for managing x402 VeChain Facilitator API keys and monitoring transactions.
 
 ## Features
 
-- 🚀 Server-side rendering
-- ⚡️ Hot Module Replacement (HMR)
-- 📦 Asset bundling and optimization
-- 🔄 Data loading and mutations
-- 🔒 TypeScript by default
-- 🎉 TailwindCSS for styling
-- 📖 [React Router docs](https://reactrouter.com/)
+- 🔐 **Wallet-Based Authentication**: Sign in with VeWorld or Sync2 wallet
+- 🔑 **API Key Management**: Create and manage API keys for the facilitator
+- 📊 **Transaction Monitoring**: View transaction history and status
+- 🔒 **Secure Sessions**: JWT-based authentication with httpOnly cookies
 
 ## Getting Started
 
+### Prerequisites
+
+- Node.js 18+ and pnpm
+- VeChain wallet (VeWorld extension or Sync2 desktop)
+- Running x402 API server
+
 ### Installation
 
-Install the dependencies:
+```bash
+# Install dependencies
+pnpm install
+
+# Set up environment variables (optional)
+# VITE_API_URL defaults to http://localhost:3000
+
+# Start development server
+pnpm dev
+```
+
+The dashboard will be available at `http://localhost:5173`
+
+### Building for Production
 
 ```bash
-npm install
+pnpm build
+pnpm start
 ```
 
-### Development
+## Authentication
 
-Start the development server with HMR:
+The dashboard uses wallet-based authentication. Users authenticate by:
+
+1. Connecting their VeChain wallet (VeWorld or Sync2)
+2. Signing a challenge message
+3. Receiving a JWT token stored in an httpOnly cookie
+
+See [AUTHENTICATION.md](../../AUTHENTICATION.md) for detailed documentation.
+
+## Project Structure
+
+```
+app/
+├── components/          # Reusable UI components
+│   └── WalletConnector.tsx
+├── lib/                 # Utilities and hooks
+│   ├── api.ts          # API client
+│   └── auth.tsx        # Authentication context
+├── routes/             # Application routes
+│   ├── home.tsx        # Landing page
+│   ├── login.tsx       # Login page
+│   └── dashboard.tsx   # Protected dashboard
+├── app.css             # Global styles
+├── root.tsx            # Root layout
+└── routes.ts           # Route configuration
+```
+
+## Environment Variables
 
 ```bash
-npm run dev
+# API server URL (default: http://localhost:3000)
+VITE_API_URL=http://localhost:3000
 ```
 
-Your application will be available at `http://localhost:5173`.
+## Technology Stack
 
-## Building for Production
+- **React Router v7**: Full-stack React framework
+- **Hono Client**: Type-safe API client
+- **TailwindCSS**: Utility-first CSS framework
+- **VeChain dApp Kit**: Wallet integration
+- **TypeScript**: Type safety
 
-Create a production build:
+## Development
 
-```bash
-npm run build
+### Type Safety
+
+The dashboard uses Hono's RPC client for type-safe API calls:
+
+```tsx
+import { client } from '~/lib/api'
+
+// Fully typed API calls
+const res = await client['auth']['me'].$get()
+const user = await res.json() // Type: UserProfile
 ```
 
-## Deployment
+### Adding New Routes
 
-### Docker Deployment
+1. Create route file in `app/routes/`
+2. Add route to `app/routes.ts`
+3. Generate types: `npx react-router typegen`
 
-To build and run using Docker:
+## License
 
-```bash
-docker build -t my-app .
-
-# Run the container
-docker run -p 3000:3000 my-app
-```
-
-The containerized application can be deployed to any platform that supports Docker, including:
-
-- AWS ECS
-- Google Cloud Run
-- Azure Container Apps
-- Digital Ocean App Platform
-- Fly.io
-- Railway
-
-### DIY Deployment
-
-If you're familiar with deploying Node applications, the built-in app server is production-ready.
-
-Make sure to deploy the output of `npm run build`
-
-```
-├── package.json
-├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
-├── build/
-│   ├── client/    # Static assets
-│   └── server/    # Server-side code
-```
-
-## Styling
-
-This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
-
----
-
-Built with ❤️ using React Router.
+ISC

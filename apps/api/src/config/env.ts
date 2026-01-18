@@ -68,11 +68,8 @@ const envSchema = z.object({
   // Authentication
   JWT_SECRET: z
     .string()
-    .optional()
-    .refine((val) => !val || val.length >= 32, {
-      message: 'JWT secret must be at least 32 characters',
-    })
-    .describe('Secret key for JWT token generation'),
+    .min(32, 'JWT secret must be at least 32 characters')
+    .describe('Secret key for JWT token generation (required for authentication)'),
 
   // Rate Limiting
   RATE_LIMIT_REQUESTS_PER_MINUTE: z
