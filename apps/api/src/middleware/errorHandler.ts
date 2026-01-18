@@ -2,7 +2,7 @@
  * Error handling middleware for x402 API
  */
 
-import { Context } from 'hono';
+import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 
 export const errorHandler = (err: Error, c: Context) => {

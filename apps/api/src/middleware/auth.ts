@@ -3,15 +3,21 @@
  * Protects routes and validates JWT tokens
  */
 
-import type { Context, Next } from 'hono'
+import type { Context, Next, MiddlewareHandler } from 'hono'
 import { verifyToken } from '../services/AuthService.js'
 import { getCookie } from 'hono/cookie'
+
+// Define the type for authenticated context variables
+export type AuthVariables = {
+  userId: string
+  walletAddress: string
+}
 
 /**
  * Middleware to require authentication
  * Checks for JWT in Authorization header or auth_token cookie
  */
-export async function requireAuth(c: Context, next: Next) {
+export const requireAuth: MiddlewareHandler<{ Variables: AuthVariables }> = async (c, next) => {
   try {
     // Try to get token from Authorization header
     let token = c.req.header('Authorization')?.replace('Bearer ', '')
@@ -34,7 +40,7 @@ export async function requireAuth(c: Context, next: Next) {
     // Verify token
     const result = verifyToken(token)
 
-    if (!result.valid) {
+    if (!result.valid || !result.userId || !result.walletAddress) {
       return c.json(
         {
           error: 'Unauthorized',
@@ -64,7 +70,7 @@ export async function requireAuth(c: Context, next: Next) {
  * Optional authentication middleware
  * Sets user info if token is present but doesn't require it
  */
-export async function optionalAuth(c: Context, next: Next) {
+export const optionalAuth: MiddlewareHandler<{ Variables: Partial<AuthVariables> }> = async (c, next) => {
   try {
     // Try to get token from Authorization header
     let token = c.req.header('Authorization')?.replace('Bearer ', '')
@@ -77,7 +83,7 @@ export async function optionalAuth(c: Context, next: Next) {
     if (token) {
       const result = verifyToken(token)
 
-      if (result.valid) {
+      if (result.valid && result.userId && result.walletAddress) {
         c.set('userId', result.userId)
         c.set('walletAddress', result.walletAddress)
       }

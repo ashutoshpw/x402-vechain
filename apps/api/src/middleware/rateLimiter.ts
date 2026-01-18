@@ -3,7 +3,7 @@
  * Simple in-memory rate limiter based on IP address
  */
 
-import { Context, Next } from 'hono';
+import type { Context, Next } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { env } from '../config/env.js';
 

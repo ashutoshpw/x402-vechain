@@ -18,12 +18,12 @@ import {
   verifySignature,
   generateToken,
 } from '../services/AuthService.js'
-import { requireAuth } from '../middleware/auth.js'
+import { requireAuth, type AuthVariables } from '../middleware/auth.js'
 import { db } from '../db/index.js'
 import { users } from '../db/schema.js'
 import { eq } from 'drizzle-orm'
 
-const authRoutes = new Hono()
+const authRoutes = new Hono<{ Variables: AuthVariables }>()
 
 /**
  * POST /auth/challenge
