@@ -125,6 +125,8 @@ export class VeChainService {
       } else {
         // For other tokens, would need to call balanceOf on the token contract
         // This requires ABI encoding/decoding which would need additional implementation
+        // TODO: Implement ERC20-like token balance queries using contract ABI calls
+        // Issue: Custom token balance queries not yet supported
         throw new Error(`Token balance queries for custom tokens not yet implemented: ${token}`);
       }
     } catch (error) {
@@ -229,7 +231,12 @@ export class VeChainService {
       } else if (firstClause.data && firstClause.data !== '0x') {
         // Contract interaction - could be a token transfer
         // Note: Full token transfer decoding would require ABI parsing
+        // For contract interactions, we mark the token type but cannot determine the amount
+        // without ABI decoding. Callers should verify contract interactions separately.
+        // TODO: Implement token transfer ABI decoding for accurate amount extraction
         token = VECHAIN_TOKENS.CONTRACT_INTERACTION;
+        // Amount remains 0 - contract interactions require additional ABI decoding
+        // to extract the actual transfer amount
         amount = BigInt(0);
       }
       

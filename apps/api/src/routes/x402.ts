@@ -94,6 +94,15 @@ x402Routes.post('/verify', zValidator('json', VerifyRequestSchema), async (c) =>
         // Decode transaction to extract payment details
         const paymentDetails = await veChainService.decodeTransaction(parsedPayload.transactionHash);
         
+        // Reject contract interactions since we cannot decode the amount without ABI
+        if (paymentDetails.token === 'CONTRACT_INTERACTION') {
+          const response: VerifyResponse = {
+            isValid: false,
+            invalidReason: 'Contract interaction transactions are not supported. Please use direct VET or VTHO transfers.',
+          };
+          return c.json(response, 400);
+        }
+        
         // Validate payment matches requirements
         const matchingOption = paymentRequirements.paymentOptions.find(
           (option: PaymentOption) => {
@@ -254,6 +263,17 @@ x402Routes.post('/settle', zValidator('json', SettleRequestSchema), async (c) =>
     // Verify payment details match requirements
     try {
       const paymentDetails = await veChainService.decodeTransaction(txHash);
+      
+      // Reject contract interactions since we cannot decode the amount without ABI
+      if (paymentDetails.token === 'CONTRACT_INTERACTION') {
+        const response: SettleResponse = {
+          success: false,
+          networkId: matchingOption.network,
+          transactionHash: txHash,
+          error: 'Contract interaction transactions are not supported. Please use direct VET or VTHO transfers.',
+        };
+        return c.json(response, 400);
+      }
       
       // Validate payment matches requirements
       const recipientMatches = matchingOption.recipient.toLowerCase() === paymentDetails.to.toLowerCase();
