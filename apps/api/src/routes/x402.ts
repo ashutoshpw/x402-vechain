@@ -6,10 +6,11 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { VerifyRequestSchema, SettleRequestSchema } from '../schemas/x402.js';
-import type { VerifyResponse, SettleResponse, SupportedResponse, PaymentOption } from '../types/x402.js';
+import type { VerifyResponse, SettleResponse, SupportedResponse, PaymentOption, PaymentPayload } from '../types/x402.js';
 import { veChainService } from '../services/VeChainService.js';
 import { VECHAIN_NETWORKS, VECHAIN_TIMING } from '../config/vechain.js';
 import { validatePaymentDetails, CONTRACT_INTERACTION_ERROR } from './helpers.js';
+import { verifyPaymentPayload } from '../services/PaymentVerificationService.js';
 
 const x402Routes = new Hono();
 
@@ -31,7 +32,7 @@ x402Routes.post('/verify', zValidator('json', VerifyRequestSchema), async (c) =>
     const decodedPayload = Buffer.from(paymentPayload, 'base64').toString('utf-8');
     
     // Basic validation: Check if payload can be parsed
-    let parsedPayload;
+    let parsedPayload: any;
     try {
       parsedPayload = JSON.parse(decodedPayload);
     } catch (e) {
@@ -51,19 +52,6 @@ x402Routes.post('/verify', zValidator('json', VerifyRequestSchema), async (c) =>
       return c.json(response, 400);
     }
 
-    // Check if any payment option matches supported networks
-    const hasValidNetwork = paymentRequirements.paymentOptions.some(
-      (option: PaymentOption) => SUPPORTED_NETWORKS.includes(option.network)
-    );
-
-    if (!hasValidNetwork) {
-      const response: VerifyResponse = {
-        isValid: false,
-        invalidReason: 'No supported network found in payment options',
-      };
-      return c.json(response, 400);
-    }
-
     // Check expiration if provided
     if (paymentRequirements.expiresAt) {
       const expirationTime = new Date(paymentRequirements.expiresAt).getTime();
@@ -78,8 +66,44 @@ x402Routes.post('/verify', zValidator('json', VerifyRequestSchema), async (c) =>
       }
     }
 
-    // If payload contains a transaction hash, verify it on-chain
+    // Check if payload has signature (new payment payload format)
+    if (parsedPayload.signature && parsedPayload.payload) {
+      // Verify signed payment payload
+      const verificationResult = await verifyPaymentPayload(
+        parsedPayload as PaymentPayload,
+        paymentRequirements.paymentOptions
+      );
+      
+      if (!verificationResult.isValid) {
+        const response: VerifyResponse = {
+          isValid: false,
+          invalidReason: verificationResult.error || 'Payment payload verification failed',
+        };
+        return c.json(response, 400);
+      }
+      
+      // Verification successful
+      const response: VerifyResponse = {
+        isValid: true,
+      };
+      return c.json(response, 200);
+    }
+    
+    // Legacy: If payload contains a transaction hash, verify it on-chain
     if (parsedPayload.transactionHash) {
+      // Check if any payment option matches supported networks
+      const hasValidNetwork = paymentRequirements.paymentOptions.some(
+        (option: PaymentOption) => SUPPORTED_NETWORKS.includes(option.network)
+      );
+
+      if (!hasValidNetwork) {
+        const response: VerifyResponse = {
+          isValid: false,
+          invalidReason: 'No supported network found in payment options',
+        };
+        return c.json(response, 400);
+      }
+
       try {
         const receipt = await veChainService.verifyTransaction(parsedPayload.transactionHash);
         
