@@ -128,7 +128,7 @@ Returns supported networks and assets.
 {
   "networks": [{
     "network": "eip155:100009",
-    "assets": ["VET", "VTHO"]
+    "assets": ["VET", "VTHO", "VEUSD", "B3TR"]
   }],
   "schemes": ["x402"]
 }
