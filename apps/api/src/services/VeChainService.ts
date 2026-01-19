@@ -18,7 +18,15 @@ import {
   VECHAIN_TOKENS,
   VECHAIN_CONTRACTS,
   VECHAIN_TIMING,
+  TOKEN_REGISTRY,
+  isPlaceholderAddress,
+  getTokenSymbolFromAddress,
 } from '../config/vechain.js';
+import {
+  decodeTransfer,
+  decodeTransferWithAuthorization,
+  isTokenTransfer,
+} from '../utils/vip180.js';
 
 /**
  * Decoded payment details from a VeChain transaction
@@ -123,7 +131,7 @@ export class VeChainService {
   /**
    * Get balance for an address and token
    * @param address Wallet address to check
-   * @param token Token symbol ('VET', 'VTHO') or contract address
+   * @param token Token symbol ('VET', 'VTHO', 'VEUSD', 'B3TR') or contract address
    * @returns Balance as bigint
    * @throws Error if balance query fails
    */
@@ -138,11 +146,63 @@ export class VeChainService {
         const account = await this.getAccount(address);
         return BigInt(account.energy);
       } else {
-        // For other tokens, would need to call balanceOf on the token contract
-        // This requires ABI encoding/decoding which would need additional implementation
-        // TODO: Implement ERC20-like token balance queries using contract ABI calls
-        // Issue: Custom token balance queries not yet supported
-        throw new Error(`Token balance queries for custom tokens not yet implemented: ${token}`);
+        // For VIP-180 tokens, call balanceOf on the token contract
+        let contractAddress: string;
+
+        // Check if token is a known symbol or a contract address
+        const tokenUpper = token.toUpperCase();
+        if (tokenUpper in TOKEN_REGISTRY) {
+          contractAddress = TOKEN_REGISTRY[tokenUpper as keyof typeof TOKEN_REGISTRY].address;
+          
+          // Validate that the contract address is not a placeholder
+          if (isPlaceholderAddress(contractAddress)) {
+            throw new Error(
+              `Token ${token} contract address is not yet configured. ` +
+              `Please update VECHAIN_CONTRACTS.${tokenUpper} with the actual contract address.`
+            );
+          }
+        } else if (token.startsWith('0x') && token.length === 42) {
+          // Assume it's a contract address
+          contractAddress = token;
+          
+          // Validate that the contract address is not a placeholder
+          if (isPlaceholderAddress(contractAddress)) {
+            throw new Error(
+              `Cannot query balance for null address. Please provide a valid contract address.`
+            );
+          }
+        } else {
+          throw new Error(`Unknown token: ${token}`);
+        }
+
+        // Define balanceOf ABI fragment
+        const balanceOfAbi = {
+          constant: true,
+          inputs: [{ name: 'owner', type: 'address' }],
+          name: 'balanceOf',
+          outputs: [{ name: 'balance', type: 'uint256' }],
+          type: 'function',
+        };
+
+        // Call the balanceOf function
+        const result = await this.thorClient.contracts.executeCall(
+          contractAddress,
+          balanceOfAbi as any,
+          [address],
+          {}
+        );
+
+        if (!result || !result.success) {
+          throw new Error(result?.result?.errorMessage || 'Contract call failed');
+        }
+
+        // The result.result.plain is the decoded balance
+        const balance = result.result.plain;
+        if (balance === undefined || balance === null) {
+          throw new Error('No balance returned from contract call');
+        }
+
+        return BigInt(balance.toString());
       }
     } catch (error) {
       throw new Error(
@@ -241,16 +301,40 @@ export class VeChainService {
         // VET transfer
         token = VECHAIN_TOKENS.VET;
         amount = BigInt(firstClause.value);
-      } else if (firstClause.data && firstClause.data !== '0x') {
-        // Contract interaction - could be a token transfer
-        // Note: Full token transfer decoding would require ABI parsing
-        // For contract interactions, we mark the token type but cannot determine the amount
-        // without ABI decoding. Callers should verify contract interactions separately.
-        // TODO: Implement token transfer ABI decoding for accurate amount extraction
-        token = VECHAIN_TOKENS.CONTRACT_INTERACTION;
-        // Amount remains 0 - contract interactions require additional ABI decoding
-        // to extract the actual transfer amount
-        amount = BigInt(0);
+      } else if (firstClause.data && firstClause.data !== '0x' && firstClause.data !== '0x0') {
+        // Contract interaction - check if it's a VIP-180 token transfer
+        if (isTokenTransfer(firstClause.data)) {
+          // Try to decode as standard transfer first
+          const transferData = decodeTransfer(firstClause.data);
+          if (transferData) {
+            // Standard VIP-180 transfer
+            to = transferData.to;
+            amount = transferData.amount;
+            
+            // Determine which token by contract address
+            const contractAddress = firstClause.to || '';
+            token = getTokenSymbolFromAddress(contractAddress);
+          } else {
+            // Try to decode as transferWithAuthorization
+            const authTransferData = decodeTransferWithAuthorization(firstClause.data);
+            if (authTransferData) {
+              to = authTransferData.to;
+              amount = authTransferData.amount;
+              
+              // Determine which token by contract address
+              const contractAddress = firstClause.to || '';
+              token = getTokenSymbolFromAddress(contractAddress);
+            } else {
+              // Not a recognized token transfer - mark as contract interaction
+              token = VECHAIN_TOKENS.CONTRACT_INTERACTION;
+              amount = BigInt(0);
+            }
+          }
+        } else {
+          // Non-token contract interaction
+          token = VECHAIN_TOKENS.CONTRACT_INTERACTION;
+          amount = BigInt(0);
+        }
       }
       
       return {

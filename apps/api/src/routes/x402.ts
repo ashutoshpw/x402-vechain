@@ -405,8 +405,10 @@ x402Routes.get('/supported', (c) => {
     networks: SUPPORTED_NETWORKS.map(network => ({
       network,
       assets: [
-        'VET',  // VeChain native token
-        'VTHO', // VeThor token
+        'VET',    // VeChain native token
+        'VTHO',   // VeThor token (VIP-180)
+        'VEUSD',  // VeUSD stablecoin (VIP-180)
+        'B3TR',   // B3TR token (VIP-180)
       ],
     })),
     schemes: ['x402'], // Supported payment schemes
