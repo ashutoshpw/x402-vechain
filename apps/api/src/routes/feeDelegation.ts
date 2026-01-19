@@ -7,6 +7,7 @@
 import { Hono } from 'hono';
 import { feeDelegationService } from '../services/FeeDelegationService.js';
 import { env } from '../config/env.js';
+import { isValidAddress } from '../utils/validation.js';
 
 const feeDelegationRoutes = new Hono();
 
@@ -58,7 +59,7 @@ feeDelegationRoutes.get('/stats/:address', async (c) => {
   const address = c.req.param('address');
   const timeWindowHours = parseInt(c.req.query('hours') || '24', 10);
 
-  if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
+  if (!address || !isValidAddress(address)) {
     return c.json({
       error: 'Invalid address format',
     }, 400);

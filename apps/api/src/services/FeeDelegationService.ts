@@ -24,6 +24,7 @@ import { env, getVeChainRpcUrl } from '../config/env.js';
 import { db } from '../db/index.js';
 import { feeDelegationLogs } from '../db/schema.js';
 import { eq, and, sql, gte } from 'drizzle-orm';
+import { logger } from '../utils/logger.js';
 
 /**
  * Result of fee delegation operation
@@ -46,10 +47,30 @@ export interface DelegationStats {
 }
 
 /**
+ * VeChain gas estimation constants
+ */
+const GAS_CONSTANTS = {
+  BASE_GAS_PER_CLAUSE: 5000n,
+  ZERO_BYTE_GAS: 68n,
+  NON_ZERO_BYTE_GAS: 200n,
+  SAFETY_BUFFER_PERCENT: 120n,
+} as const;
+
+/**
+ * Fee delegation rate limiting constants
+ */
+const RATE_LIMIT_CONSTANTS = {
+  MAX_TRANSACTIONS_PER_HOUR: 10,
+} as const;
+
+/**
  * Fee Delegation Service
  */
 export class FeeDelegationService {
   private thorClient: ThorClient;
+  // SECURITY NOTE: Private key is stored in memory as a Buffer.
+  // In production, consider using a hardware security module (HSM),
+  // key management service (KMS), or secure enclave for key storage.
   private delegatorPrivateKey: Buffer | null;
   private delegatorAddress: string | null;
 
@@ -121,9 +142,13 @@ export class FeeDelegationService {
     if (await this.isBalanceLow()) {
       const balance = await this.getDelegatorBalance();
       const balanceVtho = Number(balance) / 1e18;
-      console.warn(
-        `⚠️  Fee delegation account balance is low: ${balanceVtho.toFixed(2)} VTHO ` +
-        `(threshold: ${env.FEE_DELEGATION_LOW_BALANCE_THRESHOLD} VTHO)`
+      logger.warn(
+        'Fee delegation account balance is low',
+        {
+          balanceVtho: balanceVtho.toFixed(2),
+          threshold: env.FEE_DELEGATION_LOW_BALANCE_THRESHOLD,
+          delegatorAddress: this.delegatorAddress,
+        }
       );
     }
   }
@@ -179,10 +204,7 @@ export class FeeDelegationService {
   async hasExceededDelegationLimit(userAddress: string): Promise<boolean> {
     const stats = await this.getUserDelegationStats(userAddress, 1); // 1 hour window
     
-    // Simple rate limit: max 10 transactions per hour per address
-    const MAX_TRANSACTIONS_PER_HOUR = 10;
-    
-    return stats.transactionCount >= MAX_TRANSACTIONS_PER_HOUR;
+    return stats.transactionCount >= RATE_LIMIT_CONSTANTS.MAX_TRANSACTIONS_PER_HOUR;
   }
 
   /**
@@ -191,29 +213,26 @@ export class FeeDelegationService {
    * @returns Estimated VTHO cost
    */
   private async estimateGasCost(clauses: TransactionClause[]): Promise<bigint> {
-    // VeChain gas calculation:
-    // - Base gas: 5000 per clause
-    // - Data gas: 68 per zero byte, 200 per non-zero byte
-    // Gas price is typically 1 wei per gas unit (can vary)
+    // VeChain gas calculation based on transaction data
+    // Reference: https://docs.vechain.org/core-concepts/transactions/transaction-calculation
     
     let totalGas = BigInt(0);
-    const BASE_GAS_PER_CLAUSE = 5000n;
     
     for (const clause of clauses) {
-      totalGas += BASE_GAS_PER_CLAUSE;
+      totalGas += GAS_CONSTANTS.BASE_GAS_PER_CLAUSE;
       
       if (clause.data && clause.data !== '0x') {
         const data = clause.data.startsWith('0x') ? clause.data.slice(2) : clause.data;
         const dataBytes = Buffer.from(data, 'hex');
         
         for (const byte of dataBytes) {
-          totalGas += byte === 0 ? 68n : 200n;
+          totalGas += byte === 0 ? GAS_CONSTANTS.ZERO_BYTE_GAS : GAS_CONSTANTS.NON_ZERO_BYTE_GAS;
         }
       }
     }
     
-    // Add 20% buffer for safety
-    totalGas = (totalGas * 120n) / 100n;
+    // Add safety buffer for estimation accuracy
+    totalGas = (totalGas * GAS_CONSTANTS.SAFETY_BUFFER_PERCENT) / 100n;
     
     return totalGas;
   }
@@ -259,7 +278,8 @@ export class FeeDelegationService {
         'hex'
       );
       
-      // Decode as a delegated but not fully signed transaction
+      // Decode as a partially-signed delegated transaction
+      // Second parameter (false) indicates the transaction is not fully signed yet
       const transaction = Transaction.decode(txBytes, false);
 
       // Verify it's a delegated transaction
@@ -341,7 +361,12 @@ export class FeeDelegationService {
         metadata: {},
       });
     } catch (error) {
-      console.error('Failed to log fee delegation:', error);
+      logger.error('Failed to log fee delegation', error, {
+        txHash,
+        userAddress,
+        vthoSpent,
+        status,
+      });
       // Don't throw - logging failures shouldn't break the main flow
     }
   }
