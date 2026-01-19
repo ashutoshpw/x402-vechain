@@ -7,7 +7,6 @@ import type { Route } from './+types/transactions'
 import { useAuth } from '~/lib/auth'
 import { useNavigate } from 'react-router'
 import { useEffect, useState } from 'react'
-import { client } from '~/lib/api'
 
 interface Transaction {
   id: string
@@ -85,11 +84,14 @@ export default function Transactions({ }: Route.ComponentProps) {
         credentials: 'include',
       })
       
-      if (response.ok) {
-        const data = await response.json()
-        setTransactions(data.transactions)
-        setTotalPages(data.pagination.totalPages)
+      if (!response.ok) {
+        console.error(`Failed to fetch transactions: ${response.status} ${response.statusText}`)
+        return
       }
+      
+      const data = await response.json()
+      setTransactions(data.transactions)
+      setTotalPages(data.pagination.totalPages)
     } catch (error) {
       console.error('Failed to fetch transactions:', error)
     } finally {
@@ -105,21 +107,26 @@ export default function Transactions({ }: Route.ComponentProps) {
   const handleExportCSV = () => {
     if (transactions.length === 0) return
     
+    // Helper to escape CSV values
+    const escapeCSV = (value: string): string => {
+      return `"${value.replace(/"/g, '""')}"`
+    }
+    
     // Create CSV content
     const headers = ['Time', 'Token', 'Amount', 'Recipient', 'Status', 'Tx Hash', 'Network']
     const rows = transactions.map(tx => [
-      new Date(tx.createdAt).toISOString(),
-      getTokenSymbol(tx.tokenAddress),
-      formatAmount(tx.amount),
-      tx.toAddress,
-      tx.status,
-      tx.txHash,
-      tx.network,
+      escapeCSV(new Date(tx.createdAt).toISOString()),
+      escapeCSV(getTokenSymbol(tx.tokenAddress)),
+      escapeCSV(formatAmount(tx.amount)),
+      escapeCSV(tx.toAddress),
+      escapeCSV(tx.status),
+      escapeCSV(tx.txHash),
+      escapeCSV(tx.network),
     ])
     
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(',')),
+      ...rows.map(row => row.join(',')),
     ].join('\n')
     
     // Download CSV

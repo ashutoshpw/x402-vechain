@@ -71,9 +71,7 @@ transactionsRoutes.get('/transactions', requireAuth, async (c) => {
         like(transactions.txHash, `%${search}%`),
         like(transactions.toAddress, `%${search}%`)
       )
-      if (searchCondition) {
-        conditions.push(searchCondition)
-      }
+      conditions.push(searchCondition!)
     }
     
     // Fetch transactions
