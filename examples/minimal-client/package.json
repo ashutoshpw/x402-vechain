@@ -1,0 +1,25 @@
+{
+  "name": "minimal-client-example",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Minimal x402 client example - Browser wallet payment integration",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "x402",
+    "vechain",
+    "payment",
+    "client",
+    "wallet"
+  ],
+  "dependencies": {
+    "@x402/vechain": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "^5.4.11",
+    "typescript": "^5.8.3"
+  }
+}

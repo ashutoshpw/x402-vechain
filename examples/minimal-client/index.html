@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal x402 Client - VeChain Wallet Integration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-left: 4px solid #1976d2;
+        }
+
+        .status.success {
+            background: #e8f5e9;
+            color: #388e3c;
+            border-left: 4px solid #388e3c;
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #c62828;
+        }
+
+        .status.warning {
+            background: #fff3e0;
+            color: #f57c00;
+            border-left: 4px solid #f57c00;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .endpoint-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 1px solid #dee2e6;
+        }
+
+        .endpoint-card h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .endpoint-card .price {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .endpoint-card .description {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .response {
+            background: #2d3748;
+            color: #48bb78;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .config {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+
+        .config label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .config input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        .wallet-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .wallet-status.connected {
+            background: #48bb78;
+        }
+
+        .wallet-status.disconnected {
+            background: #f56565;
+        }
+
+        code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌐 Minimal x402 Client</h1>
+        <p class="subtitle">Browser Wallet Payment Integration Demo</p>
+
+        <div id="status" class="status info">
+            <span class="wallet-status disconnected"></span>
+            <span>No wallet detected. Please install VeWorld or VeChain Sync.</span>
+        </div>
+
+        <div class="config">
+            <label for="apiUrl">API Server URL:</label>
+            <input type="text" id="apiUrl" value="http://localhost:3001" placeholder="http://localhost:3001">
+            
+            <label for="facilitatorUrl">Facilitator URL:</label>
+            <input type="text" id="facilitatorUrl" value="http://localhost:3000" placeholder="http://localhost:3000">
+        </div>
+
+        <div class="button-group">
+            <button id="connectBtn">Connect Wallet</button>
+            <button id="checkSupportedBtn">Check Supported Networks</button>
+        </div>
+
+        <h2 style="margin-top: 30px; margin-bottom: 15px; color: #333;">API Endpoints</h2>
+
+        <div class="endpoint-card">
+            <h3>📖 Free Content</h3>
+            <p class="price">FREE</p>
+            <p class="description">Test a free endpoint that doesn't require payment</p>
+            <button class="fetch-free">Fetch Free Content</button>
+            <div class="response" id="freeResponse" style="display: none;"></div>
+        </div>
+
+        <div class="endpoint-card">
+            <h3>💎 Premium Data</h3>
+            <p class="price">0.01 VET</p>
+            <p class="description">Access premium data with automatic payment handling</p>
+            <button class="fetch-premium-data" disabled>Fetch Premium Data</button>
+            <div class="response" id="premiumDataResponse" style="display: none;"></div>
+        </div>
+
+        <div class="endpoint-card">
+            <h3>🔒 Premium Content</h3>
+            <p class="price">0.05 VEUSD</p>
+            <p class="description">Access exclusive content with VEUSD payment</p>
+            <button class="fetch-premium-content" disabled>Fetch Premium Content</button>
+            <div class="response" id="premiumContentResponse" style="display: none;"></div>
+        </div>
+
+        <div id="logs" style="margin-top: 30px;"></div>
+    </div>
+
+    <script type="module" src="/main.ts"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+{
+  "name": "ai-agent-example",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "AI Agent x402 example - Autonomous payment bot for VeChain",
+  "main": "agent.ts",
+  "scripts": {
+    "start": "tsx agent.ts",
+    "dev": "tsx watch agent.ts"
+  },
+  "keywords": [
+    "x402",
+    "vechain",
+    "ai",
+    "agent",
+    "automation"
+  ],
+  "dependencies": {
+    "@x402/vechain": "workspace:*",
+    "@vechain/sdk-core": "^1.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.17",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.3"
+  }
+}
