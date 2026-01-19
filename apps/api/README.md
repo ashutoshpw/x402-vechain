@@ -280,6 +280,33 @@ npm run build
 npx tsc --noEmit
 ```
 
+### Testing
+
+The API includes comprehensive unit tests covering all endpoints and services.
+
+```bash
+# Run all tests
+npm run test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with UI
+npm run test:ui
+
+# Run tests with coverage report
+npm run test:coverage
+```
+
+**Test Coverage:**
+- ✅ 70 test cases
+- ✅ `/verify`, `/settle`, `/supported` endpoints
+- ✅ VeChain service (transaction verification, submission, balance queries)
+- ✅ Payment verification service (signature validation, nonce checking)
+- ✅ Mocked VeChain SDK for fast, deterministic tests
+
+See [TESTING.md](./TESTING.md) for detailed testing documentation.
+
 ## Project Structure
 
 ```
