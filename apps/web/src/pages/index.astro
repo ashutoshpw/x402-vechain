@@ -1,107 +1,1164 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { hc } from 'hono/client'
-import type { AppType } from 'api' // Imported from our workspace!
-
-// Connect to the API running on port 3000
-const client = hc<AppType>('http://localhost:3000')
-
-// This call is fully typed. If you change the API, this errors!
-let data = { message: 'x402 VeChain Facilitator' };
-try {
-  const res = await client.index.$get()
-  data = await res.json()
-} catch (e) {
-  console.log('API not running, using default message');
-}
 ---
 
 <Layout>
-  <div class="home-container">
-    <h1>x402 VeChain</h1>
-    <p class="subtitle">Payment Protocol for VeChain</p>
-    
-    <div class="api-status">
-      <p><strong>API Status:</strong> {data.message}</p>
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="nav-container">
+      <div class="nav-logo">
+        <span class="logo-text">x402<span class="logo-vet">.vet</span></span>
+      </div>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="https://github.com/ashutoshpw/x402-vechain" target="_blank">Docs</a>
+        <a href="/playground" class="nav-cta">Try Playground</a>
+      </div>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <svg class="sun-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"/>
+        </svg>
+        <svg class="moon-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
+        </svg>
+      </button>
     </div>
+  </nav>
 
-    <div class="cta-section">
-      <h2>Try the Interactive Playground</h2>
-      <p>Test x402 payments on VeChain testnet with VeWorld or Sync2 wallet</p>
-      <a href="/playground" class="playground-link">
-        Open Payment Playground →
-      </a>
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-container">
+      <div class="hero-badge">
+        <span class="badge-pulse"></span>
+        Now Live on VeChain Mainnet
+      </div>
+      <h1 class="hero-title">
+        x402 Payment Protocol
+        <span class="hero-gradient">for VeChain</span>
+      </h1>
+      <p class="hero-subtitle">
+        Instant, verifiable cryptocurrency payments with fee delegation. 
+        Accept VET, VTHO, VEUSD, and B3TR with zero configuration.
+      </p>
+      <div class="hero-ctas">
+        <a href="/playground" class="btn btn-primary">
+          Get Started
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+          </svg>
+        </a>
+        <a href="https://github.com/ashutoshpw/x402-vechain" class="btn btn-secondary" target="_blank">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z" clip-rule="evenodd"/>
+          </svg>
+          View on GitHub
+        </a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat">
+          <div class="stat-value">4</div>
+          <div class="stat-label">Tokens Supported</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">&lt; 2s</div>
+          <div class="stat-label">Settlement Time</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">100%</div>
+          <div class="stat-label">Fee Delegation</div>
+        </div>
+      </div>
     </div>
-  </div>
+  </section>
+
+  <!-- How It Works Section -->
+  <section class="how-it-works" id="how-it-works">
+    <div class="container">
+      <h2 class="section-title">How x402 Works</h2>
+      <p class="section-subtitle">Simple payment flow powered by VeChain blockchain</p>
+      
+      <div class="flow-diagram">
+        <div class="flow-step">
+          <div class="step-number">1</div>
+          <div class="step-icon">💳</div>
+          <h3>Create Payment</h3>
+          <p>Customer initiates payment with their VeWorld or Sync2 wallet</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="step-number">2</div>
+          <div class="step-icon">✅</div>
+          <h3>Verify</h3>
+          <p>x402 validates payment payload and requirements</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="step-number">3</div>
+          <div class="step-icon">⚡</div>
+          <h3>Settle</h3>
+          <p>Transaction submitted to VeChain with optional fee delegation</p>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="step-number">4</div>
+          <div class="step-icon">🎉</div>
+          <h3>Confirm</h3>
+          <p>Instant confirmation with transaction receipt</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features" id="features">
+    <div class="container">
+      <h2 class="section-title">Built for Developers</h2>
+      <p class="section-subtitle">Everything you need to accept VeChain payments</p>
+      
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3>Fee Delegation</h3>
+          <p>Optional gas fee sponsorship for seamless user experience. Users pay zero transaction fees.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🪙</div>
+          <h3>Multi-Token Support</h3>
+          <p>Accept VET, VTHO, VEUSD, and B3TR tokens natively without smart contract deployment.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <h3>Secure Verification</h3>
+          <p>Cryptographic validation ensures payment integrity before settlement.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⏱️</div>
+          <h3>Instant Settlement</h3>
+          <p>Average settlement time under 2 seconds with VeChain's high throughput.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🌐</div>
+          <h3>CAIP-2 Compliant</h3>
+          <p>Industry-standard network identifiers for cross-chain compatibility.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Full Type Safety</h3>
+          <p>End-to-end TypeScript support with Hono RPC client integration.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Code Example Section -->
+  <section class="code-example">
+    <div class="container">
+      <h2 class="section-title">Quick Start</h2>
+      <p class="section-subtitle">Integrate x402 in minutes with our simple API</p>
+      
+      <div class="code-tabs">
+        <div class="code-window">
+          <div class="code-header">
+            <span class="code-title">example.ts</span>
+          </div>
+          <pre class="code-block"><code>import &#123; hc &#125; from 'hono/client'
+import type &#123; AppType &#125; from 'x402-vechain'
+
+// Initialize client
+const client = hc&lt;AppType&gt;('https://api.x402.vet')
+
+// Verify payment
+const verification = await client.verify.$post(&#123;
+  json: &#123;
+    paymentPayload: encodedTx,
+    paymentRequirements: &#123;
+      paymentOptions: [&#123;
+        network: 'eip155:100009', // VeChain testnet
+        asset: 'VET',
+        amount: '100',
+        recipient: '0x742d35Cc...'
+      &#125;],
+      merchantId: 'your-merchant-id'
+    &#125;
+  &#125;
+&#125;)
+
+const &#123; isValid &#125; = await verification.json()
+
+if (isValid) &#123;
+  // Settle on-chain
+  const receipt = await client.settle.$post(&#123; json &#125;)
+  console.log('Payment confirmed!', receipt)
+&#125;</code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Supported Tokens Section -->
+  <section class="tokens" id="tokens">
+    <div class="container">
+      <h2 class="section-title">Supported Tokens</h2>
+      <p class="section-subtitle">Accept payments in multiple VeChain assets</p>
+      
+      <div class="tokens-grid">
+        <div class="token-card">
+          <div class="token-logo vet-logo">VET</div>
+          <h3>VeChain (VET)</h3>
+          <p>Native VeChain token for value transfer and transaction fees</p>
+          <div class="token-meta">
+            <span class="token-badge">Native</span>
+            <span class="token-badge">Mainnet</span>
+          </div>
+        </div>
+        <div class="token-card">
+          <div class="token-logo vtho-logo">VTHO</div>
+          <h3>VeThor (VTHO)</h3>
+          <p>Energy token generated by holding VET, used for gas fees</p>
+          <div class="token-meta">
+            <span class="token-badge">Native</span>
+            <span class="token-badge">Mainnet</span>
+          </div>
+        </div>
+        <div class="token-card">
+          <div class="token-logo veusd-logo">VEUSD</div>
+          <h3>VeUSD</h3>
+          <p>USD-pegged stablecoin on VeChain for stable payments</p>
+          <div class="token-meta">
+            <span class="token-badge">VIP-180</span>
+            <span class="token-badge">Coming Soon</span>
+          </div>
+        </div>
+        <div class="token-card">
+          <div class="token-logo b3tr-logo">B3TR</div>
+          <h3>VeBetter (B3TR)</h3>
+          <p>Sustainability-focused token for eco-friendly transactions</p>
+          <div class="token-meta">
+            <span class="token-badge">VIP-180</span>
+            <span class="token-badge">Coming Soon</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing Section -->
+  <section class="pricing" id="pricing">
+    <div class="container">
+      <h2 class="section-title">Simple Pricing</h2>
+      <p class="section-subtitle">Start free, scale as you grow</p>
+      
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <div class="pricing-header">
+            <h3>Free Tier</h3>
+            <div class="pricing-price">
+              <span class="price-currency">$</span>
+              <span class="price-amount">0</span>
+              <span class="price-period">/month</span>
+            </div>
+          </div>
+          <ul class="pricing-features">
+            <li>✓ Up to 1,000 transactions/month</li>
+            <li>✓ VET & VTHO support</li>
+            <li>✓ Basic fee delegation</li>
+            <li>✓ Community support</li>
+            <li>✓ API access</li>
+          </ul>
+          <a href="/playground" class="pricing-cta">Start Free</a>
+        </div>
+        
+        <div class="pricing-card pricing-featured">
+          <div class="pricing-badge">Popular</div>
+          <div class="pricing-header">
+            <h3>Premium</h3>
+            <div class="pricing-price">
+              <span class="price-currency">$</span>
+              <span class="price-amount">49</span>
+              <span class="price-period">/month</span>
+            </div>
+          </div>
+          <ul class="pricing-features">
+            <li>✓ Unlimited transactions</li>
+            <li>✓ All tokens (VET, VTHO, VEUSD, B3TR)</li>
+            <li>✓ Advanced fee delegation</li>
+            <li>✓ Priority support</li>
+            <li>✓ Custom webhooks</li>
+            <li>✓ Analytics dashboard</li>
+          </ul>
+          <a href="/playground" class="pricing-cta">Get Started</a>
+        </div>
+        
+        <div class="pricing-card">
+          <div class="pricing-header">
+            <h3>Enterprise</h3>
+            <div class="pricing-price">
+              <span class="price-amount">Custom</span>
+            </div>
+          </div>
+          <ul class="pricing-features">
+            <li>✓ Everything in Premium</li>
+            <li>✓ Dedicated infrastructure</li>
+            <li>✓ SLA guarantees</li>
+            <li>✓ White-label solution</li>
+            <li>✓ Custom integrations</li>
+            <li>✓ 24/7 support</li>
+          </ul>
+          <a href="https://github.com/ashutoshpw/x402-vechain" class="pricing-cta">Contact Sales</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-section">
+          <h4 class="footer-title">x402<span class="footer-vet">.vet</span></h4>
+          <p class="footer-desc">Payment protocol for VeChain blockchain. Built with ❤️ for the VeChain community.</p>
+        </div>
+        
+        <div class="footer-section">
+          <h5>Resources</h5>
+          <ul class="footer-links">
+            <li><a href="https://github.com/ashutoshpw/x402-vechain">Documentation</a></li>
+            <li><a href="/playground">Playground</a></li>
+            <li><a href="https://github.com/ashutoshpw/x402-vechain">GitHub</a></li>
+            <li><a href="https://github.com/ashutoshpw/x402-vechain/issues">Support</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h5>Community</h5>
+          <ul class="footer-links">
+            <li><a href="https://www.vechain.org/" target="_blank">VeChain</a></li>
+            <li><a href="https://discord.gg/vechain" target="_blank">Discord</a></li>
+            <li><a href="https://twitter.com/vechainofficial" target="_blank">Twitter</a></li>
+            <li><a href="https://github.com/vechain" target="_blank">VeChain GitHub</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h5>Legal</h5>
+          <ul class="footer-links">
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+            <li><a href="https://github.com/ashutoshpw/x402-vechain/blob/main/LICENSE">License</a></li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; 2024 x402.vet. All rights reserved.</p>
+        <div class="footer-social">
+          <a href="https://github.com/ashutoshpw/x402-vechain" target="_blank" aria-label="GitHub">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+            </svg>
+          </a>
+          <a href="https://twitter.com/vechainofficial" target="_blank" aria-label="Twitter">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
 </Layout>
 
 <style>
-  .home-container {
-    max-width: 800px;
-    margin: 4rem auto;
-    padding: 2rem;
-    text-align: center;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /* Navigation */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #e5e7eb;
   }
-
-  h1 {
-    font-size: 3rem;
+  
+  :global(.dark) .nav {
+    background: rgba(10, 10, 10, 0.9);
+    border-bottom-color: #1f2937;
+  }
+  
+  .nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .logo-text {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #8B5CF6;
+  }
+  
+  .logo-vet {
+    color: #15BDFF;
+  }
+  
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+  }
+  
+  .nav-links a {
+    text-decoration: none;
+    color: #374151;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+  
+  :global(.dark) .nav-links a {
+    color: #d1d5db;
+  }
+  
+  .nav-links a:hover {
+    color: #8B5CF6;
+  }
+  
+  .nav-cta {
+    background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+    color: white !important;
+    padding: 0.5rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+  
+  .theme-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    color: #374151;
+    transition: color 0.2s;
+  }
+  
+  :global(.dark) .theme-toggle {
+    color: #d1d5db;
+  }
+  
+  .theme-toggle:hover {
+    color: #8B5CF6;
+  }
+  
+  .sun-icon {
+    display: none;
+  }
+  
+  .moon-icon {
+    display: block;
+  }
+  
+  :global(.dark) .sun-icon {
+    display: block;
+  }
+  
+  :global(.dark) .moon-icon {
+    display: none;
+  }
+  
+  /* Hero Section */
+  .hero {
+    padding: 6rem 2rem 4rem;
+    text-align: center;
+    background: linear-gradient(180deg, #f9fafb 0%, transparent 100%);
+  }
+  
+  :global(.dark) .hero {
+    background: linear-gradient(180deg, rgba(139, 92, 246, 0.05) 0%, transparent 100%);
+  }
+  
+  .hero-container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    color: #8B5CF6;
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 2rem;
+  }
+  
+  .badge-pulse {
+    width: 8px;
+    height: 8px;
+    background: #15BDFF;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  
+  .hero-title {
+    font-size: 3.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0 0 1.5rem;
+  }
+  
+  .hero-gradient {
+    background: linear-gradient(135deg, #15BDFF 0%, #8B5CF6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .hero-subtitle {
+    font-size: 1.25rem;
+    color: #4b5563;
+    max-width: 700px;
+    margin: 0 auto 2.5rem;
+    line-height: 1.6;
+  }
+  
+  :global(.dark) .hero-subtitle {
+    color: #d1d5db;
+  }
+  
+  .hero-ctas {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 4rem;
+  }
+  
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.3s;
+  }
+  
+  .btn-primary {
+    background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+    color: white;
+    box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
+  }
+  
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 35px rgba(139, 92, 246, 0.4);
+  }
+  
+  .btn-secondary {
+    background: white;
+    color: #374151;
+    border: 2px solid #e5e7eb;
+  }
+  
+  :global(.dark) .btn-secondary {
+    background: #1f2937;
+    color: #e5e7eb;
+    border-color: #374151;
+  }
+  
+  .btn-secondary:hover {
+    border-color: #8B5CF6;
+    color: #8B5CF6;
+  }
+  
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3rem;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  
+  .stat {
+    text-align: center;
+  }
+  
+  .stat-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #15BDFF 0%, #8B5CF6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .stat-label {
+    font-size: 0.875rem;
+    color: #4b5563;
+    margin-top: 0.5rem;
+  }
+  
+  :global(.dark) .stat-label {
+    color: #9ca3af;
+  }
+  
+  /* Container */
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+  
+  /* Section Styles */
+  section {
+    padding: 5rem 0;
+  }
+  
+  .section-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-align: center;
+    margin: 0 0 1rem;
+  }
+  
+  .section-subtitle {
+    font-size: 1.125rem;
+    color: #4b5563;
+    text-align: center;
+    margin: 0 0 4rem;
+  }
+  
+  :global(.dark) .section-subtitle {
+    color: #9ca3af;
+  }
+  
+  /* How It Works */
+  .how-it-works {
+    background: #f9fafb;
+  }
+  
+  :global(.dark) .how-it-works {
+    background: rgba(139, 92, 246, 0.03);
+  }
+  
+  .flow-diagram {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+    gap: 1rem;
+    align-items: center;
+  }
+  
+  .flow-step {
+    background: white;
+    padding: 2rem;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    position: relative;
+  }
+  
+  :global(.dark) .flow-step {
+    background: #1f2937;
+  }
+  
+  .step-number {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #15BDFF 0%, #8B5CF6 100%);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.875rem;
+  }
+  
+  .step-icon {
+    font-size: 2.5rem;
     margin-bottom: 1rem;
   }
-
-  .subtitle {
-    font-size: 1.2rem;
-    color: #666;
-    margin-bottom: 3rem;
+  
+  .flow-step h3 {
+    font-size: 1.25rem;
+    margin: 0 0 0.5rem;
   }
-
-  .api-status {
-    background: white;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 2rem;
-    margin-bottom: 3rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  }
-
-  .api-status p {
+  
+  .flow-step p {
+    font-size: 0.875rem;
+    color: #4b5563;
     margin: 0;
   }
-
-  .cta-section {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 3rem 2rem;
-    border-radius: 12px;
-    margin-bottom: 2rem;
+  
+  :global(.dark) .flow-step p {
+    color: #9ca3af;
   }
-
-  .cta-section h2 {
-    font-size: 1.8rem;
+  
+  .flow-arrow {
+    font-size: 2rem;
+    color: #8B5CF6;
+    font-weight: bold;
+  }
+  
+  /* Features */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+  
+  .feature-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  
+  :global(.dark) .feature-card {
+    background: #1f2937;
+  }
+  
+  .feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(139, 92, 246, 0.15);
+  }
+  
+  .feature-icon {
+    font-size: 2.5rem;
     margin-bottom: 1rem;
   }
-
-  .cta-section p {
-    font-size: 1.1rem;
-    margin-bottom: 2rem;
-    opacity: 0.9;
+  
+  .feature-card h3 {
+    font-size: 1.25rem;
+    margin: 0 0 0.75rem;
   }
-
-  .playground-link {
-    display: inline-block;
+  
+  .feature-card p {
+    font-size: 0.9375rem;
+    color: #4b5563;
+    margin: 0;
+    line-height: 1.6;
+  }
+  
+  :global(.dark) .feature-card p {
+    color: #9ca3af;
+  }
+  
+  /* Code Example */
+  .code-example {
+    background: #111827;
+    color: white;
+  }
+  
+  .code-window {
+    background: #1e1e1e;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  }
+  
+  .code-header {
+    background: #2d2d2d;
+    padding: 0.75rem 1.5rem;
+    border-bottom: 1px solid #3d3d3d;
+  }
+  
+  .code-title {
+    font-size: 0.875rem;
+    color: #888;
+  }
+  
+  .code-block {
+    padding: 2rem;
+    margin: 0;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: #d4d4d4;
+  }
+  
+  /* Tokens */
+  .tokens {
+    background: #f9fafb;
+  }
+  
+  :global(.dark) .tokens {
+    background: rgba(21, 189, 255, 0.03);
+  }
+  
+  .tokens-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+  }
+  
+  .token-card {
     background: white;
-    color: #667eea;
-    padding: 1rem 2rem;
-    border-radius: 8px;
-    text-decoration: none;
-    font-size: 1.1rem;
-    font-weight: 600;
-    transition: all 0.2s;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    padding: 2rem;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s;
   }
-
-  .playground-link:hover {
+  
+  :global(.dark) .token-card {
+    background: #1f2937;
+  }
+  
+  .token-card:hover {
+    transform: translateY(-4px);
+  }
+  
+  .token-logo {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+  }
+  
+  .vet-logo { background: linear-gradient(135deg, #15BDFF 0%, #0EA5E9 100%); }
+  .vtho-logo { background: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%); }
+  .veusd-logo { background: linear-gradient(135deg, #10B981 0%, #059669 100%); }
+  .b3tr-logo { background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%); }
+  
+  .token-card h3 {
+    font-size: 1.25rem;
+    margin: 0 0 0.5rem;
+  }
+  
+  .token-card p {
+    font-size: 0.875rem;
+    color: #4b5563;
+    margin: 0 0 1.5rem;
+    line-height: 1.5;
+  }
+  
+  :global(.dark) .token-card p {
+    color: #9ca3af;
+  }
+  
+  .token-meta {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+  
+  .token-badge {
+    background: #f3f4f6;
+    color: #374151;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  
+  :global(.dark) .token-badge {
+    background: #374151;
+    color: #d1d5db;
+  }
+  
+  /* Pricing */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  
+  .pricing-card {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    position: relative;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  
+  :global(.dark) .pricing-card {
+    background: #1f2937;
+  }
+  
+  .pricing-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+  }
+  
+  .pricing-featured {
+    border: 2px solid #8B5CF6;
+    transform: scale(1.05);
+  }
+  
+  .pricing-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  
+  .pricing-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  :global(.dark) .pricing-header {
+    border-bottom-color: #374151;
+  }
+  
+  .pricing-header h3 {
+    font-size: 1.5rem;
+    margin: 0 0 1.5rem;
+  }
+  
+  .pricing-price {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.25rem;
+  }
+  
+  .price-currency {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #4b5563;
+  }
+  
+  .price-amount {
+    font-size: 3.5rem;
+    font-weight: 700;
+  }
+  
+  .price-period {
+    font-size: 1rem;
+    color: #4b5563;
+  }
+  
+  .pricing-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem;
+  }
+  
+  .pricing-features li {
+    padding: 0.75rem 0;
+    color: #374151;
+    font-size: 0.9375rem;
+  }
+  
+  :global(.dark) .pricing-features li {
+    color: #d1d5db;
+  }
+  
+  .pricing-cta {
+    display: block;
+    text-align: center;
+    padding: 1rem;
+    background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  
+  .pricing-cta:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 8px 16px rgba(139, 92, 246, 0.3);
+  }
+  
+  /* Footer */
+  .footer {
+    background: #111827;
+    color: white;
+    padding: 4rem 0 2rem;
+  }
+  
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 3rem;
+    margin-bottom: 3rem;
+  }
+  
+  .footer-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 1rem;
+    color: #8B5CF6;
+  }
+  
+  .footer-vet {
+    color: #15BDFF;
+  }
+  
+  .footer-desc {
+    color: #9ca3af;
+    line-height: 1.6;
+  }
+  
+  .footer-section h5 {
+    margin: 0 0 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  
+  .footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .footer-links li {
+    margin-bottom: 0.75rem;
+  }
+  
+  .footer-links a {
+    color: #9ca3af;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  
+  .footer-links a:hover {
+    color: #15BDFF;
+  }
+  
+  .footer-bottom {
+    padding-top: 2rem;
+    border-top: 1px solid #1f2937;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .footer-bottom p {
+    color: #9ca3af;
+    margin: 0;
+  }
+  
+  .footer-social {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .footer-social a {
+    color: #9ca3af;
+    transition: color 0.2s;
+  }
+  
+  .footer-social a:hover {
+    color: #15BDFF;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 968px) {
+    .nav-links {
+      display: none;
+    }
+    
+    .hero-title {
+      font-size: 2.5rem;
+    }
+    
+    .hero-stats {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+    
+    .flow-diagram {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+    
+    .flow-arrow {
+      transform: rotate(90deg);
+    }
+    
+    .features-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .tokens-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .pricing-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .pricing-featured {
+      transform: scale(1);
+    }
+    
+    .footer-grid {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+    
+    .footer-bottom {
+      flex-direction: column;
+      gap: 1rem;
+      text-align: center;
+    }
+  }
+  
+  @media (max-width: 640px) {
+    .hero-title {
+      font-size: 2rem;
+    }
+    
+    .hero-subtitle {
+      font-size: 1rem;
+    }
+    
+    .hero-ctas {
+      flex-direction: column;
+    }
+    
+    .tokens-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
+
+<script>
+  // Theme toggle functionality
+  const themeToggle = document.getElementById('themeToggle');
+  
+  themeToggle?.addEventListener('click', () => {
+    const isDark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  });
+</script>
