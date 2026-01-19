@@ -3,6 +3,7 @@
  * Pie chart showing payment distribution by token
  */
 
+import { useMemo } from 'react'
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 interface TokenData {
@@ -25,12 +26,15 @@ const TOKEN_NAMES: Record<string, string> = {
 }
 
 export function TokenDistributionChart({ data }: TokenDistributionChartProps) {
-  // Transform data for the chart
-  const chartData = data.map(item => ({
-    name: TOKEN_NAMES[item.token] || item.token,
-    value: item.count,
-    volume: parseFloat((BigInt(item.volume || '0') / BigInt(10 ** 18)).toString()),
-  }))
+  // Transform data for the chart (memoized to avoid recalculation on every render)
+  const chartData = useMemo(() =>
+    data.map(item => ({
+      name: TOKEN_NAMES[item.token] || item.token,
+      value: item.count,
+      volume: parseFloat((BigInt(item.volume || '0') / BigInt(10 ** 18)).toString()),
+    })),
+    [data]
+  )
 
   return (
     <div className="bg-white rounded-lg shadow p-6">

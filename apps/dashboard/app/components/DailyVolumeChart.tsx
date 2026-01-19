@@ -3,6 +3,7 @@
  * Line chart showing daily payment volume
  */
 
+import { useMemo } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 interface DailyVolumeData {
@@ -17,13 +18,16 @@ interface DailyVolumeChartProps {
 }
 
 export function DailyVolumeChart({ data }: DailyVolumeChartProps) {
-  // Transform data for the chart
-  const chartData = data.map(item => ({
-    date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    count: item.count,
-    confirmed: item.confirmedCount,
-    volume: parseFloat((BigInt(item.volume || '0') / BigInt(10 ** 18)).toString()),
-  }))
+  // Transform data for the chart (memoized to avoid recalculation on every render)
+  const chartData = useMemo(() => 
+    data.map(item => ({
+      date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      count: item.count,
+      confirmed: item.confirmedCount,
+      volume: parseFloat((BigInt(item.volume || '0') / BigInt(10 ** 18)).toString()),
+    })),
+    [data]
+  )
 
   return (
     <div className="bg-white rounded-lg shadow p-6">

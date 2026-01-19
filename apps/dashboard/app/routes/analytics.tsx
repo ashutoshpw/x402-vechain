@@ -11,6 +11,7 @@ import { StatCard } from '~/components/StatCard'
 import { DailyVolumeChart } from '~/components/DailyVolumeChart'
 import { TokenDistributionChart } from '~/components/TokenDistributionChart'
 import { HourlyApiCallsChart } from '~/components/HourlyApiCallsChart'
+import { formatTokenAmount } from '~/lib/formatters'
 
 interface AnalyticsData {
   timeRange: string
@@ -64,8 +65,8 @@ export default function Analytics({ }: Route.ComponentProps) {
     try {
       setLoading(true)
       
-      const url = `/analytics/stats?range=${timeRange}`
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${url}`, {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+      const response = await fetch(`${apiUrl}/analytics/stats?range=${timeRange}`, {
         credentials: 'include',
       })
       
@@ -86,21 +87,6 @@ export default function Analytics({ }: Route.ComponentProps) {
   const handleLogout = async () => {
     await logout()
     navigate('/login')
-  }
-
-  const formatVolume = (volume: string): string => {
-    try {
-      const num = BigInt(volume || '0')
-      const divisor = BigInt(10 ** 18)
-      const intPart = num / divisor
-      const fracPart = num % divisor
-      
-      // Format with up to 2 decimal places
-      const fracStr = fracPart.toString().padStart(18, '0').slice(0, 2)
-      return `${intPart}.${fracStr}`
-    } catch {
-      return '0.00'
-    }
   }
 
   if (isLoading || !isAuthenticated || !user) {
@@ -213,7 +199,7 @@ export default function Analytics({ }: Route.ComponentProps) {
               />
               <StatCard
                 title="Total Volume"
-                value={formatVolume(analytics.summary.totalVolume)}
+                value={formatTokenAmount(analytics.summary.totalVolume)}
                 description="Across all tokens"
               />
               <StatCard
@@ -249,7 +235,7 @@ export default function Analytics({ }: Route.ComponentProps) {
                       <p className="text-sm text-gray-600">{tokenData.count} payments</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-gray-900">{formatVolume(tokenData.volume)}</p>
+                      <p className="font-medium text-gray-900">{formatTokenAmount(tokenData.volume)}</p>
                       <p className="text-sm text-gray-600">Total volume</p>
                     </div>
                   </div>

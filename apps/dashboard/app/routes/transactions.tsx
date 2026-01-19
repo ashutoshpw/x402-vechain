@@ -7,6 +7,7 @@ import type { Route } from './+types/transactions'
 import { useAuth } from '~/lib/auth'
 import { useNavigate } from 'react-router'
 import { useEffect, useState } from 'react'
+import { formatTokenAmount, getTokenSymbol, getExplorerUrl } from '~/lib/formatters'
 
 interface Transaction {
   id: string
@@ -79,8 +80,8 @@ export default function Transactions({ }: Route.ComponentProps) {
       if (filters.maxAmount) params.append('maxAmount', filters.maxAmount)
       if (filters.search) params.append('search', filters.search)
       
-      const url = `/transactions?${params.toString()}`
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${url}`, {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+      const response = await fetch(`${apiUrl}/transactions?${params.toString()}`, {
         credentials: 'include',
       })
       
@@ -117,7 +118,7 @@ export default function Transactions({ }: Route.ComponentProps) {
     const rows = transactions.map(tx => [
       escapeCSV(new Date(tx.createdAt).toISOString()),
       escapeCSV(getTokenSymbol(tx.tokenAddress)),
-      escapeCSV(formatAmount(tx.amount)),
+      escapeCSV(formatTokenAmount(tx.amount, 4)),
       escapeCSV(tx.toAddress),
       escapeCSV(tx.status),
       escapeCSV(tx.txHash),
@@ -139,42 +140,6 @@ export default function Transactions({ }: Route.ComponentProps) {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-  }
-
-  const getTokenSymbol = (tokenAddress: string | null): string => {
-    if (!tokenAddress) return 'VET'
-    
-    // Common VeChain tokens
-    const tokenMap: Record<string, string> = {
-      '0x0000000000000000000000000000456e65726779': 'VTHO',
-      '0x170f4ba2e7c1c0b5e1b811b67e5c82226b248e77': 'VEUSD',
-      '0x5ef79995FE8a89e0812330E4378eB2660ceDe699': 'B3TR',
-    }
-    
-    return tokenMap[tokenAddress.toLowerCase()] || tokenAddress.slice(0, 8) + '...'
-  }
-
-  const formatAmount = (amount: string): string => {
-    try {
-      // Convert from Wei to human readable
-      const num = BigInt(amount)
-      const divisor = BigInt(10 ** 18)
-      const intPart = num / divisor
-      const fracPart = num % divisor
-      
-      // Format with up to 4 decimal places
-      const fracStr = fracPart.toString().padStart(18, '0').slice(0, 4)
-      return `${intPart}.${fracStr}`
-    } catch {
-      return amount
-    }
-  }
-
-  const getExplorerUrl = (txHash: string, network: string): string => {
-    const baseUrl = network === 'mainnet'
-      ? 'https://explore.vechain.org'
-      : 'https://explore-testnet.vechain.org'
-    return `${baseUrl}/transactions/${txHash}`
   }
 
   if (isLoading || !isAuthenticated || !user) {
@@ -377,7 +342,7 @@ export default function Transactions({ }: Route.ComponentProps) {
                           {getTokenSymbol(tx.tokenAddress)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {formatAmount(tx.amount)}
+                          {formatTokenAmount(tx.amount, 4)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono">
                           {tx.toAddress.slice(0, 10)}...{tx.toAddress.slice(-8)}
