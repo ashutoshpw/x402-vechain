@@ -6,6 +6,22 @@
  */
 
 /**
+ * ABI encoding/decoding constants
+ */
+const FUNCTION_SIGNATURE_LENGTH = 10; // 0x + 8 hex chars (4 bytes)
+const PARAM_SIZE_BYTES = 32; // Each parameter is 32 bytes in ABI encoding
+const PARAM_SIZE_HEX = PARAM_SIZE_BYTES * 2; // 64 hex chars per parameter
+const ADDRESS_PADDING_START = 24; // Addresses are right-padded in 32-byte slots
+const ADDRESS_LENGTH = 40; // Address hex length (20 bytes)
+
+/**
+ * Transfer function parameters
+ */
+const TRANSFER_PARAMS_LENGTH = PARAM_SIZE_HEX * 2; // 2 params: to, amount
+const TRANSFER_WITH_AUTH_MIN_PARAMS = 9; // from, to, value, validAfter, validBefore, nonce, v, r, s
+const TRANSFER_WITH_AUTH_PARAMS_MIN_LENGTH = PARAM_SIZE_HEX * TRANSFER_WITH_AUTH_MIN_PARAMS;
+
+/**
  * Function signature for standard VIP-180 transfer
  * Calculated as: keccak256("transfer(address,uint256)").slice(0, 4)
  */
@@ -36,19 +52,20 @@ export function decodeTransfer(data: string): { to: string; amount: bigint } | n
     }
 
     // Remove function signature (first 4 bytes / 8 hex chars + 0x prefix)
-    const params = data.slice(10);
+    const params = data.slice(FUNCTION_SIGNATURE_LENGTH);
 
     // Decode parameters: address (32 bytes) + uint256 (32 bytes)
-    if (params.length !== 128) {
-      // 64 bytes = 128 hex chars
+    if (params.length !== TRANSFER_PARAMS_LENGTH) {
       return null;
     }
 
     // Extract address (first 32 bytes, last 20 bytes are the address)
-    const toAddress = '0x' + params.slice(24, 64);
+    const toAddress = '0x' + params.slice(ADDRESS_PADDING_START, ADDRESS_PADDING_START + ADDRESS_LENGTH);
 
     // Extract amount (next 32 bytes)
-    const amountHex = params.slice(64, 128);
+    const amountStart = PARAM_SIZE_HEX;
+    const amountEnd = amountStart + PARAM_SIZE_HEX;
+    const amountHex = params.slice(amountStart, amountEnd);
     const amount = BigInt('0x' + amountHex);
 
     return {
@@ -80,21 +97,30 @@ export function decodeTransferWithAuthorization(data: string): {
     }
 
     // Remove function signature (first 4 bytes / 8 hex chars + 0x prefix)
-    const params = data.slice(10);
+    const params = data.slice(FUNCTION_SIGNATURE_LENGTH);
 
     // Parameters: from, to, value, validAfter, validBefore, nonce, v, r, s
     // Each parameter is 32 bytes (64 hex chars)
-    if (params.length < 288) {
-      // 9 params * 32 bytes = 288 hex chars minimum
+    if (params.length < TRANSFER_WITH_AUTH_PARAMS_MIN_LENGTH) {
       return null;
     }
 
-    const fromAddress = '0x' + params.slice(24, 64);
-    const toAddress = '0x' + params.slice(88, 128);
-    const amount = BigInt('0x' + params.slice(128, 192));
-    const validAfter = BigInt('0x' + params.slice(192, 256));
-    const validBefore = BigInt('0x' + params.slice(256, 320));
-    const nonce = '0x' + params.slice(320, 384);
+    // Helper function to extract parameter at index
+    const getParam = (index: number) => {
+      const start = index * PARAM_SIZE_HEX;
+      const end = start + PARAM_SIZE_HEX;
+      return params.slice(start, end);
+    };
+
+    // Extract addresses (skip padding)
+    const fromAddress = '0x' + getParam(0).slice(ADDRESS_PADDING_START);
+    const toAddress = '0x' + getParam(1).slice(ADDRESS_PADDING_START);
+    
+    // Extract bigint values
+    const amount = BigInt('0x' + getParam(2));
+    const validAfter = BigInt('0x' + getParam(3));
+    const validBefore = BigInt('0x' + getParam(4));
+    const nonce = '0x' + getParam(5);
 
     return {
       from: fromAddress,

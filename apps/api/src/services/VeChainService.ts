@@ -19,6 +19,8 @@ import {
   VECHAIN_CONTRACTS,
   VECHAIN_TIMING,
   TOKEN_REGISTRY,
+  isPlaceholderAddress,
+  getTokenSymbolFromAddress,
 } from '../config/vechain.js';
 import {
   decodeTransfer,
@@ -151,9 +153,24 @@ export class VeChainService {
         const tokenUpper = token.toUpperCase();
         if (tokenUpper in TOKEN_REGISTRY) {
           contractAddress = TOKEN_REGISTRY[tokenUpper as keyof typeof TOKEN_REGISTRY].address;
+          
+          // Validate that the contract address is not a placeholder
+          if (isPlaceholderAddress(contractAddress)) {
+            throw new Error(
+              `Token ${token} contract address is not yet configured. ` +
+              `Please update VECHAIN_CONTRACTS.${tokenUpper} with the actual contract address.`
+            );
+          }
         } else if (token.startsWith('0x') && token.length === 42) {
           // Assume it's a contract address
           contractAddress = token;
+          
+          // Validate that the contract address is not a placeholder
+          if (isPlaceholderAddress(contractAddress)) {
+            throw new Error(
+              `Cannot query balance for null address. Please provide a valid contract address.`
+            );
+          }
         } else {
           throw new Error(`Unknown token: ${token}`);
         }
@@ -295,17 +312,8 @@ export class VeChainService {
             amount = transferData.amount;
             
             // Determine which token by contract address
-            const contractAddress = firstClause.to?.toLowerCase();
-            if (contractAddress === VECHAIN_CONTRACTS.VTHO.toLowerCase()) {
-              token = VECHAIN_TOKENS.VTHO;
-            } else if (contractAddress === VECHAIN_CONTRACTS.VEUSD.toLowerCase()) {
-              token = VECHAIN_TOKENS.VEUSD;
-            } else if (contractAddress === VECHAIN_CONTRACTS.B3TR.toLowerCase()) {
-              token = VECHAIN_TOKENS.B3TR;
-            } else {
-              // Unknown VIP-180 token - use contract address as identifier
-              token = contractAddress || VECHAIN_TOKENS.CONTRACT_INTERACTION;
-            }
+            const contractAddress = firstClause.to || '';
+            token = getTokenSymbolFromAddress(contractAddress);
           } else {
             // Try to decode as transferWithAuthorization
             const authTransferData = decodeTransferWithAuthorization(firstClause.data);
@@ -314,17 +322,8 @@ export class VeChainService {
               amount = authTransferData.amount;
               
               // Determine which token by contract address
-              const contractAddress = firstClause.to?.toLowerCase();
-              if (contractAddress === VECHAIN_CONTRACTS.VTHO.toLowerCase()) {
-                token = VECHAIN_TOKENS.VTHO;
-              } else if (contractAddress === VECHAIN_CONTRACTS.VEUSD.toLowerCase()) {
-                token = VECHAIN_TOKENS.VEUSD;
-              } else if (contractAddress === VECHAIN_CONTRACTS.B3TR.toLowerCase()) {
-                token = VECHAIN_TOKENS.B3TR;
-              } else {
-                // Unknown VIP-180 token - use contract address as identifier
-                token = contractAddress || VECHAIN_TOKENS.CONTRACT_INTERACTION;
-              }
+              const contractAddress = firstClause.to || '';
+              token = getTokenSymbolFromAddress(contractAddress);
             } else {
               // Not a recognized token transfer - mark as contract interaction
               token = VECHAIN_TOKENS.CONTRACT_INTERACTION;

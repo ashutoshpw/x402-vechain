@@ -40,6 +40,38 @@ export const VECHAIN_CONTRACTS = {
 } as const;
 
 /**
+ * Null address used as placeholder for contracts not yet deployed
+ */
+const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+/**
+ * Get token symbol from contract address
+ * @param contractAddress Token contract address
+ * @returns Token symbol or the address if not found in registry
+ */
+export function getTokenSymbolFromAddress(contractAddress: string): string {
+  const normalizedAddress = contractAddress.toLowerCase();
+  
+  for (const [symbol, config] of Object.entries(TOKEN_REGISTRY)) {
+    if (config.address.toLowerCase() === normalizedAddress) {
+      return symbol;
+    }
+  }
+  
+  // Return the address if not found in registry
+  return contractAddress;
+}
+
+/**
+ * Check if a contract address is a placeholder (not yet deployed)
+ * @param address Contract address to check
+ * @returns true if address is a placeholder
+ */
+export function isPlaceholderAddress(address: string): boolean {
+  return address.toLowerCase() === NULL_ADDRESS.toLowerCase();
+}
+
+/**
  * VIP-180 Token Configuration
  * Defines metadata for supported VIP-180 tokens (VeChain's ERC-20 equivalent)
  */
