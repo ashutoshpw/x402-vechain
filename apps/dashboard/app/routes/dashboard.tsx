@@ -44,6 +44,12 @@ export default function Dashboard({ }: Route.ComponentProps) {
               <h1 className="text-xl font-bold text-gray-900">x402 Dashboard</h1>
             </div>
             <div className="flex items-center space-x-4">
+              <a
+                href="/transactions"
+                className="text-sm text-gray-600 hover:text-gray-900"
+              >
+                Transactions
+              </a>
               <span className="text-sm text-gray-600">
                 {user.walletAddress.slice(0, 6)}...{user.walletAddress.slice(-4)}
               </span>

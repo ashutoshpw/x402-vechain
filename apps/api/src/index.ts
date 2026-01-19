@@ -5,6 +5,7 @@ import { rateLimiter } from './middleware/rateLimiter.js'
 import x402Routes from './routes/x402.js'
 import authRoutes from './routes/auth.js'
 import feeDelegationRoutes from './routes/feeDelegation.js'
+import transactionsRoutes from './routes/transactions.js'
 
 const app = new Hono()
 
@@ -37,7 +38,8 @@ app.get('/', (c) => {
       'GET /supported',
       'GET /fee-delegation/status',
       'GET /fee-delegation/stats/:address',
-      'GET /fee-delegation/total-spent'
+      'GET /fee-delegation/total-spent',
+      'GET /transactions'
     ]
   })
 })
@@ -50,6 +52,9 @@ app.route('/', x402Routes)
 
 // Mount fee delegation routes
 app.route('/fee-delegation', feeDelegationRoutes)
+
+// Mount transactions routes
+app.route('/', transactionsRoutes)
 
 // Error handling
 app.onError(errorHandler)
