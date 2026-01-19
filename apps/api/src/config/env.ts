@@ -48,6 +48,18 @@ const envSchema = z.object({
       message: 'Private key must be a 64-character hexadecimal string',
     })
     .describe('Private key for fee delegation (64-character hex string)'),
+  
+  FEE_DELEGATION_MAX_VTHO_PER_TX: z
+    .string()
+    .default('10')
+    .transform((val) => parseFloat(val))
+    .describe('Maximum VTHO allowed per delegated transaction'),
+  
+  FEE_DELEGATION_LOW_BALANCE_THRESHOLD: z
+    .string()
+    .default('1000')
+    .transform((val) => parseFloat(val))
+    .describe('VTHO balance threshold for low-balance alerts'),
 
   // Database Configuration
   DATABASE_URL: z

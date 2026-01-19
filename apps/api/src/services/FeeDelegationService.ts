@@ -1,0 +1,374 @@
+/**
+ * Fee Delegation Service
+ * 
+ * Implements VTHO fee delegation (gas sponsorship) for VeChain transactions
+ * using Multi-Party Payment (MPP) protocol.
+ * 
+ * Features:
+ * - Transaction signing with fee delegation (reserved field)
+ * - VTHO balance monitoring
+ * - Spending limits per transaction
+ * - Low-balance alerts
+ * - Per-address rate limiting
+ */
+
+import {
+  Transaction,
+  TransactionHandler,
+  Secp256k1,
+  Address,
+  type TransactionBody,
+  type TransactionClause,
+} from '@vechain/sdk-core';
+import { ThorClient } from '@vechain/sdk-network';
+import { env, getVeChainRpcUrl } from '../config/env.js';
+import { db } from '../db/index.js';
+import { feeDelegationLogs } from '../db/schema.js';
+import { eq, and, sql, gte } from 'drizzle-orm';
+
+/**
+ * Result of fee delegation operation
+ */
+export interface DelegationResult {
+  success: boolean;
+  signedTransaction?: string;
+  error?: string;
+  vthoSpent?: string;
+}
+
+/**
+ * Fee delegation statistics for an address
+ */
+export interface DelegationStats {
+  userAddress: string;
+  totalVthoSpent: string;
+  transactionCount: number;
+  lastDelegatedAt: Date | null;
+}
+
+/**
+ * Fee Delegation Service
+ */
+export class FeeDelegationService {
+  private thorClient: ThorClient;
+  private delegatorPrivateKey: Buffer | null;
+  private delegatorAddress: string | null;
+
+  constructor() {
+    const rpcUrl = getVeChainRpcUrl();
+    this.thorClient = ThorClient.fromUrl(rpcUrl);
+    
+    // Initialize delegator private key if fee delegation is enabled
+    if (env.FEE_DELEGATION_ENABLED && env.FEE_DELEGATION_PRIVATE_KEY) {
+      this.delegatorPrivateKey = Buffer.from(env.FEE_DELEGATION_PRIVATE_KEY, 'hex');
+      
+      // Derive delegator address from private key
+      const publicKey = Secp256k1.derivePublicKey(this.delegatorPrivateKey);
+      this.delegatorAddress = Address.ofPublicKey(publicKey).toString();
+    } else {
+      this.delegatorPrivateKey = null;
+      this.delegatorAddress = null;
+    }
+  }
+
+  /**
+   * Check if fee delegation is enabled and configured
+   */
+  isEnabled(): boolean {
+    return env.FEE_DELEGATION_ENABLED && this.delegatorPrivateKey !== null;
+  }
+
+  /**
+   * Get delegator account address
+   */
+  getDelegatorAddress(): string | null {
+    return this.delegatorAddress;
+  }
+
+  /**
+   * Get VTHO balance of the delegator account
+   * @returns VTHO balance as bigint
+   */
+  async getDelegatorBalance(): Promise<bigint> {
+    if (!this.delegatorAddress) {
+      throw new Error('Fee delegation is not enabled');
+    }
+
+    const account = await this.thorClient.accounts.getAccount(
+      Address.of(this.delegatorAddress)
+    );
+
+    if (!account) {
+      throw new Error('Failed to get delegator account');
+    }
+
+    return BigInt(account.energy);
+  }
+
+  /**
+   * Check if delegator balance is below threshold
+   * @returns true if balance is low
+   */
+  async isBalanceLow(): Promise<boolean> {
+    const balance = await this.getDelegatorBalance();
+    const threshold = BigInt(Math.floor(env.FEE_DELEGATION_LOW_BALANCE_THRESHOLD * 1e18)); // Convert to Wei
+    return balance < threshold;
+  }
+
+  /**
+   * Log a warning if balance is low
+   */
+  private async checkAndLogLowBalance(): Promise<void> {
+    if (await this.isBalanceLow()) {
+      const balance = await this.getDelegatorBalance();
+      const balanceVtho = Number(balance) / 1e18;
+      console.warn(
+        `⚠️  Fee delegation account balance is low: ${balanceVtho.toFixed(2)} VTHO ` +
+        `(threshold: ${env.FEE_DELEGATION_LOW_BALANCE_THRESHOLD} VTHO)`
+      );
+    }
+  }
+
+  /**
+   * Get delegation statistics for a user address
+   * @param userAddress User wallet address
+   * @param timeWindowHours Time window in hours (default: 24)
+   * @returns Delegation statistics
+   */
+  async getUserDelegationStats(
+    userAddress: string,
+    timeWindowHours: number = 24
+  ): Promise<DelegationStats> {
+    const timeWindowMs = timeWindowHours * 60 * 60 * 1000;
+    const cutoffTime = new Date(Date.now() - timeWindowMs);
+
+    const logs = await db
+      .select()
+      .from(feeDelegationLogs)
+      .where(
+        and(
+          eq(feeDelegationLogs.userAddress, userAddress.toLowerCase()),
+          gte(feeDelegationLogs.createdAt, cutoffTime)
+        )
+      );
+
+    const totalVthoSpent = logs.reduce(
+      (sum, log) => sum + BigInt(log.vthoSpent),
+      BigInt(0)
+    );
+
+    const lastDelegatedAt = logs.length > 0
+      ? logs.reduce((latest, log) => 
+          log.createdAt > latest ? log.createdAt : latest, 
+          logs[0].createdAt
+        )
+      : null;
+
+    return {
+      userAddress,
+      totalVthoSpent: totalVthoSpent.toString(),
+      transactionCount: logs.length,
+      lastDelegatedAt,
+    };
+  }
+
+  /**
+   * Check if user has exceeded delegation limits
+   * @param userAddress User wallet address
+   * @returns true if limits are exceeded
+   */
+  async hasExceededDelegationLimit(userAddress: string): Promise<boolean> {
+    const stats = await this.getUserDelegationStats(userAddress, 1); // 1 hour window
+    
+    // Simple rate limit: max 10 transactions per hour per address
+    const MAX_TRANSACTIONS_PER_HOUR = 10;
+    
+    return stats.transactionCount >= MAX_TRANSACTIONS_PER_HOUR;
+  }
+
+  /**
+   * Estimate gas cost for transaction clauses
+   * @param clauses Transaction clauses
+   * @returns Estimated VTHO cost
+   */
+  private async estimateGasCost(clauses: TransactionClause[]): Promise<bigint> {
+    // VeChain gas calculation:
+    // - Base gas: 5000 per clause
+    // - Data gas: 68 per zero byte, 200 per non-zero byte
+    // Gas price is typically 1 wei per gas unit (can vary)
+    
+    let totalGas = BigInt(0);
+    const BASE_GAS_PER_CLAUSE = 5000n;
+    
+    for (const clause of clauses) {
+      totalGas += BASE_GAS_PER_CLAUSE;
+      
+      if (clause.data && clause.data !== '0x') {
+        const data = clause.data.startsWith('0x') ? clause.data.slice(2) : clause.data;
+        const dataBytes = Buffer.from(data, 'hex');
+        
+        for (const byte of dataBytes) {
+          totalGas += byte === 0 ? 68n : 200n;
+        }
+      }
+    }
+    
+    // Add 20% buffer for safety
+    totalGas = (totalGas * 120n) / 100n;
+    
+    return totalGas;
+  }
+
+  /**
+   * Sign a transaction with fee delegation
+   * Sets the reserved field to enable Multi-Party Payment (MPP)
+   * 
+   * @param unsignedTx Unsigned transaction body
+   * @param userSignature User's signature on the transaction
+   * @returns Delegation result with signed transaction
+   */
+  async sponsorTransaction(
+    unsignedTx: TransactionBody,
+    userSignature: string
+  ): Promise<DelegationResult> {
+    if (!this.isEnabled()) {
+      return {
+        success: false,
+        error: 'Fee delegation is not enabled',
+      };
+    }
+
+    if (!this.delegatorPrivateKey || !this.delegatorAddress) {
+      return {
+        success: false,
+        error: 'Fee delegation is not configured',
+      };
+    }
+
+    try {
+      // Extract user address from transaction origin or clauses
+      const userAddress = unsignedTx.clauses[0]?.to || this.delegatorAddress;
+
+      // Check rate limits
+      if (await this.hasExceededDelegationLimit(userAddress)) {
+        return {
+          success: false,
+          error: 'Rate limit exceeded for fee delegation',
+        };
+      }
+
+      // Estimate gas cost
+      const estimatedGas = await this.estimateGasCost(unsignedTx.clauses);
+      const maxVtho = BigInt(Math.floor(env.FEE_DELEGATION_MAX_VTHO_PER_TX * 1e18));
+
+      if (estimatedGas > maxVtho) {
+        return {
+          success: false,
+          error: `Transaction gas exceeds maximum limit (${env.FEE_DELEGATION_MAX_VTHO_PER_TX} VTHO)`,
+        };
+      }
+
+      // Check delegator balance
+      const delegatorBalance = await this.getDelegatorBalance();
+      if (delegatorBalance < estimatedGas) {
+        return {
+          success: false,
+          error: 'Insufficient VTHO balance in delegation account',
+        };
+      }
+
+      // Create transaction with fee delegation
+      // The reserved field enables VIP-191 fee delegation
+      const txBody: TransactionBody = {
+        ...unsignedTx,
+        reserved: {
+          features: 1, // VIP-191 flag for fee delegation
+        },
+      };
+
+      // Create Transaction object
+      const transaction = new Transaction(txBody);
+
+      // Sign with delegator's private key
+      const delegatorSignature = Secp256k1.sign(
+        transaction.getSignatureHash(),
+        this.delegatorPrivateKey
+      );
+
+      // Encode transaction with both signatures
+      // User signature first, then delegator signature
+      const encodedTx = TransactionHandler.encode(transaction, [
+        Buffer.from(userSignature.startsWith('0x') ? userSignature.slice(2) : userSignature, 'hex'),
+        delegatorSignature,
+      ]);
+
+      const signedTx = '0x' + encodedTx.toString('hex');
+
+      // Check for low balance and log warning
+      await this.checkAndLogLowBalance();
+
+      return {
+        success: true,
+        signedTransaction: signedTx,
+        vthoSpent: estimatedGas.toString(),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Fee delegation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  }
+
+  /**
+   * Log a fee delegation event
+   * @param txHash Transaction hash
+   * @param userAddress User address
+   * @param vthoSpent VTHO spent
+   * @param status Transaction status
+   */
+  async logDelegation(
+    txHash: string,
+    userAddress: string,
+    vthoSpent: string,
+    status: 'success' | 'failed' | 'reverted',
+    blockNumber?: number
+  ): Promise<void> {
+    try {
+      await db.insert(feeDelegationLogs).values({
+        txHash,
+        userAddress: userAddress.toLowerCase(),
+        vthoSpent,
+        network: env.VECHAIN_NETWORK,
+        blockNumber,
+        status,
+        metadata: {},
+      });
+    } catch (error) {
+      console.error('Failed to log fee delegation:', error);
+      // Don't throw - logging failures shouldn't break the main flow
+    }
+  }
+
+  /**
+   * Get total VTHO spent by the delegation service
+   * @param timeWindowHours Time window in hours
+   * @returns Total VTHO spent
+   */
+  async getTotalVthoSpent(timeWindowHours: number = 24): Promise<bigint> {
+    const timeWindowMs = timeWindowHours * 60 * 60 * 1000;
+    const cutoffTime = new Date(Date.now() - timeWindowMs);
+
+    const result = await db
+      .select({
+        total: sql<string>`COALESCE(SUM(CAST(${feeDelegationLogs.vthoSpent} AS NUMERIC)), 0)`,
+      })
+      .from(feeDelegationLogs)
+      .where(gte(feeDelegationLogs.createdAt, cutoffTime));
+
+    return BigInt(result[0]?.total || '0');
+  }
+}
+
+// Export singleton instance
+export const feeDelegationService = new FeeDelegationService();

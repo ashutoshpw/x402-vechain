@@ -134,6 +134,103 @@ Returns supported networks and assets.
 }
 ```
 
+## Fee Delegation (Gas Sponsorship)
+
+The API supports fee delegation using VeChain's Multi-Party Payment (MPP) protocol. This allows users to submit transactions without holding VTHO for gas fees.
+
+### How It Works
+
+1. User creates and signs a transaction with their private key
+2. User sends the unsigned transaction body and their signature to the `/settle` endpoint
+3. The facilitator adds its signature as the fee delegator (gas sponsor)
+4. The facilitator submits the dual-signed transaction to VeChain
+5. The facilitator pays the gas fees on behalf of the user
+
+### Usage
+
+To use fee delegation in the `/settle` endpoint, include both `unsignedTransaction` and `userSignature` in the payment payload:
+
+```json
+{
+  "paymentPayload": "base64-encoded-payload",
+  "paymentRequirements": { /* ... */ }
+}
+```
+
+Where the decoded `paymentPayload` contains:
+```json
+{
+  "unsignedTransaction": {
+    "chainTag": 39,
+    "blockRef": "0x...",
+    "expiration": 32,
+    "clauses": [/* ... */],
+    "gasPriceCoef": 0,
+    "gas": 21000,
+    "dependsOn": null,
+    "nonce": "0x..."
+  },
+  "userSignature": "0x..."
+}
+```
+
+### Monitoring Endpoints
+
+#### `GET /fee-delegation/status`
+Returns fee delegation configuration and current status.
+
+**Response:**
+```json
+{
+  "enabled": true,
+  "delegatorAddress": "0x...",
+  "balanceVtho": "1234.56",
+  "isBalanceLow": false,
+  "lowBalanceThreshold": 1000,
+  "maxVthoPerTx": 10,
+  "network": "testnet"
+}
+```
+
+#### `GET /fee-delegation/stats/:address`
+Returns delegation statistics for a specific address.
+
+**Query Parameters:**
+- `hours` (optional): Time window in hours (default: 24)
+
+**Response:**
+```json
+{
+  "address": "0x...",
+  "timeWindowHours": 24,
+  "transactionCount": 5,
+  "totalVthoSpent": "0.125000",
+  "lastDelegatedAt": "2024-12-31T23:59:59.000Z"
+}
+```
+
+#### `GET /fee-delegation/total-spent`
+Returns total VTHO spent by the delegation service.
+
+**Query Parameters:**
+- `hours` (optional): Time window in hours (default: 24)
+
+**Response:**
+```json
+{
+  "timeWindowHours": 24,
+  "totalVthoSpent": "12.345678",
+  "network": "testnet"
+}
+```
+
+### Security Features
+
+- **Rate Limiting**: Maximum 10 fee-delegated transactions per address per hour
+- **Spending Limits**: Maximum VTHO per transaction configurable via `FEE_DELEGATION_MAX_VTHO_PER_TX`
+- **Balance Monitoring**: Automatic low-balance alerts when VTHO falls below threshold
+- **Audit Logging**: All fee delegation events are logged in the database
+
 ## Rate Limiting
 
 The API implements rate limiting with the following headers:
@@ -224,6 +321,8 @@ All environment variables are validated using Zod schemas. The application will 
 
 #### Fee Delegation Configuration
 
+Fee delegation (gas sponsorship) allows users to submit transactions without holding VTHO for gas fees. The facilitator pays gas on behalf of users using VeChain's Multi-Party Payment (MPP) protocol.
+
 - **`FEE_DELEGATION_ENABLED`** (required)
   - Values: `true` or `false`
   - Default: `false`
@@ -234,6 +333,17 @@ All environment variables are validated using Zod schemas. The application will 
   - Required when `FEE_DELEGATION_ENABLED=true`
   - Private key for the fee delegation account
   - ⚠️ **WARNING**: Never commit this to version control
+  - Generate a new wallet for delegation and fund it with VTHO
+
+- **`FEE_DELEGATION_MAX_VTHO_PER_TX`** (optional)
+  - Default: `10`
+  - Maximum VTHO allowed per delegated transaction
+  - Prevents abuse by limiting gas sponsorship per transaction
+
+- **`FEE_DELEGATION_LOW_BALANCE_THRESHOLD`** (optional)
+  - Default: `1000`
+  - VTHO balance threshold for low-balance alerts
+  - Logs warnings when delegation account balance falls below this value
 
 #### Database Configuration
 
