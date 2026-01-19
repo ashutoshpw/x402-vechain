@@ -5,6 +5,10 @@
   "scripts": {
     "dev": "tsx watch src/dev.ts",
     "build": "tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
@@ -23,8 +27,10 @@
   "devDependencies": {
     "@hono/node-server": "^1.19.8",
     "@types/node": "^20.11.17",
+    "@vitest/ui": "^4.0.17",
     "drizzle-kit": "^0.31.8",
     "tsx": "^4.7.1",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^4.0.17"
   }
 }
