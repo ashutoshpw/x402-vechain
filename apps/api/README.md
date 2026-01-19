@@ -138,6 +138,8 @@ Returns supported networks and assets.
 
 The API supports fee delegation using VeChain's Multi-Party Payment (MPP) protocol. This allows users to submit transactions without holding VTHO for gas fees.
 
+**See [FEE_DELEGATION_USAGE.md](./FEE_DELEGATION_USAGE.md) for detailed client implementation guide.**
+
 ### How It Works
 
 1. User creates and signs a transaction with their private key
