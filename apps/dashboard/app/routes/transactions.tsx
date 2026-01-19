@@ -200,6 +200,12 @@ export default function Transactions({ }: Route.ComponentProps) {
               >
                 Dashboard
               </a>
+              <a
+                href="/analytics"
+                className="text-sm text-gray-600 hover:text-gray-900"
+              >
+                Analytics
+              </a>
               <span className="text-sm text-gray-600">
                 {user.walletAddress.slice(0, 6)}...{user.walletAddress.slice(-4)}
               </span>
