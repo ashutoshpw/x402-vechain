@@ -78,3 +78,24 @@ export const nonces = pgTable('nonces', {
   // Unique constraint to prevent race conditions in concurrent requests
   uniqueWalletNonce: uniqueIndex('unique_wallet_nonce').on(table.walletAddress, table.nonce),
 }))
+
+/**
+ * Fee Delegation Logs table - Tracks gas sponsorship history
+ */
+export const feeDelegationLogs = pgTable('fee_delegation_logs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  txHash: varchar('tx_hash', { length: 66 }).notNull(),
+  userAddress: varchar('user_address', { length: 42 }).notNull(),
+  vthoSpent: varchar('vtho_spent', { length: 78 }).notNull(), // Store as string to handle big numbers
+  network: varchar('network', { length: 50 }).notNull(), // 'testnet' or 'mainnet'
+  blockNumber: bigint('block_number', { mode: 'number' }),
+  status: varchar('status', { length: 50 }).notNull(), // 'success', 'failed', 'reverted'
+  metadata: jsonb('metadata').default({}),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  txHashIdx: index('fee_delegation_tx_hash_idx').on(table.txHash),
+  userAddressIdx: index('fee_delegation_user_address_idx').on(table.userAddress),
+  networkIdx: index('fee_delegation_network_idx').on(table.network),
+  createdAtIdx: index('fee_delegation_created_at_idx').on(table.createdAt),
+  statusIdx: index('fee_delegation_status_idx').on(table.status),
+}))

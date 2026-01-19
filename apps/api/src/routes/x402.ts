@@ -8,6 +8,7 @@ import { zValidator } from '@hono/zod-validator';
 import { VerifyRequestSchema, SettleRequestSchema } from '../schemas/x402.js';
 import type { VerifyResponse, SettleResponse, SupportedResponse, PaymentOption, PaymentPayload } from '../types/x402.js';
 import { veChainService } from '../services/VeChainService.js';
+import { feeDelegationService } from '../services/FeeDelegationService.js';
 import { VECHAIN_NETWORKS, VECHAIN_TIMING, SUPPORTED_NETWORKS } from '../config/vechain.js';
 import { validatePaymentDetails, CONTRACT_INTERACTION_ERROR } from './helpers.js';
 import { verifyPaymentPayload } from '../services/PaymentVerificationService.js';
@@ -231,6 +232,8 @@ x402Routes.post('/settle', zValidator('json', SettleRequestSchema), async (c) =>
 
     // Handle transaction submission
     let txHash: string;
+    let vthoSpent: string | undefined;
+    let userAddress: string | undefined;
     
     if (parsedPayload.signedTransaction) {
       // Submit a pre-signed transaction
@@ -241,6 +244,45 @@ x402Routes.post('/settle', zValidator('json', SettleRequestSchema), async (c) =>
           success: false,
           networkId: matchingOption.network,
           error: `Failed to submit transaction: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        };
+        return c.json(response, 500);
+      }
+    } else if (parsedPayload.senderSignedTransaction && parsedPayload.senderAddress) {
+      // Fee delegation flow: transaction signed by sender, needs gas payer signature
+      if (!feeDelegationService.isEnabled()) {
+        const response: SettleResponse = {
+          success: false,
+          networkId: matchingOption.network,
+          error: 'Fee delegation is not enabled on this facilitator',
+        };
+        return c.json(response, 400);
+      }
+
+      try {
+        // Sponsor the transaction with fee delegation
+        const delegationResult = await feeDelegationService.sponsorTransaction(
+          parsedPayload.senderSignedTransaction,
+          parsedPayload.senderAddress
+        );
+
+        if (!delegationResult.success) {
+          const response: SettleResponse = {
+            success: false,
+            networkId: matchingOption.network,
+            error: delegationResult.error || 'Fee delegation failed',
+          };
+          return c.json(response, 400);
+        }
+
+        // Submit the fee-delegated transaction
+        txHash = await veChainService.submitTransaction(delegationResult.signedTransaction!);
+        vthoSpent = delegationResult.vthoSpent;
+        userAddress = parsedPayload.senderAddress;
+      } catch (error) {
+        const response: SettleResponse = {
+          success: false,
+          networkId: matchingOption.network,
+          error: `Fee delegation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         };
         return c.json(response, 500);
       }
@@ -274,7 +316,7 @@ x402Routes.post('/settle', zValidator('json', SettleRequestSchema), async (c) =>
       const response: SettleResponse = {
         success: false,
         networkId: matchingOption.network,
-        error: 'Payment payload must contain either signedTransaction or transactionHash',
+        error: 'Payment payload must contain signedTransaction, transactionHash, or (senderSignedTransaction + senderAddress) for fee delegation',
       };
       return c.json(response, 400);
     }
@@ -318,6 +360,23 @@ x402Routes.post('/settle', zValidator('json', SettleRequestSchema), async (c) =>
         error: `Failed to decode transaction: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
       return c.json(response, 500);
+    }
+
+    // Log fee delegation if it was used
+    if (vthoSpent && userAddress) {
+      try {
+        const receipt = await veChainService.verifyTransaction(txHash);
+        await feeDelegationService.logDelegation(
+          txHash,
+          userAddress,
+          vthoSpent,
+          receipt.reverted ? 'reverted' : 'success',
+          receipt.meta.blockNumber
+        );
+      } catch (error) {
+        console.error('Failed to log fee delegation:', error);
+        // Don't fail the request if logging fails
+      }
     }
 
     // Settlement successful
