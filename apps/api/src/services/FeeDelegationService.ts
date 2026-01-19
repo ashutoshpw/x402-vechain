@@ -14,7 +14,6 @@
 
 import {
   Transaction,
-  TransactionHandler,
   Secp256k1,
   Address,
   type TransactionBody,
@@ -221,15 +220,15 @@ export class FeeDelegationService {
 
   /**
    * Sign a transaction with fee delegation
-   * Sets the reserved field to enable Multi-Party Payment (MPP)
+   * Takes a transaction already signed by the sender and adds the delegator (gas payer) signature
    * 
-   * @param unsignedTx Unsigned transaction body
-   * @param userSignature User's signature on the transaction
-   * @returns Delegation result with signed transaction
+   * @param senderSignedTx Hex-encoded transaction already signed by the sender
+   * @param senderAddress Address of the transaction sender
+   * @returns Delegation result with fully signed transaction
    */
   async sponsorTransaction(
-    unsignedTx: TransactionBody,
-    userSignature: string
+    senderSignedTx: string,
+    senderAddress: string
   ): Promise<DelegationResult> {
     if (!this.isEnabled()) {
       return {
@@ -246,19 +245,33 @@ export class FeeDelegationService {
     }
 
     try {
-      // Extract user address from transaction origin or clauses
-      const userAddress = unsignedTx.clauses[0]?.to || this.delegatorAddress;
-
       // Check rate limits
-      if (await this.hasExceededDelegationLimit(userAddress)) {
+      if (await this.hasExceededDelegationLimit(senderAddress)) {
         return {
           success: false,
           error: 'Rate limit exceeded for fee delegation',
         };
       }
 
+      // Decode the sender-signed transaction
+      const txBytes = Buffer.from(
+        senderSignedTx.startsWith('0x') ? senderSignedTx.slice(2) : senderSignedTx,
+        'hex'
+      );
+      
+      // Decode as a delegated but not fully signed transaction
+      const transaction = Transaction.decode(txBytes, false);
+
+      // Verify it's a delegated transaction
+      if (!transaction.isDelegated) {
+        return {
+          success: false,
+          error: 'Transaction is not marked for delegation (reserved.features must be 1)',
+        };
+      }
+
       // Estimate gas cost
-      const estimatedGas = await this.estimateGasCost(unsignedTx.clauses);
+      const estimatedGas = await this.estimateGasCost(transaction.body.clauses);
       const maxVtho = BigInt(Math.floor(env.FEE_DELEGATION_MAX_VTHO_PER_TX * 1e18));
 
       if (estimatedGas > maxVtho) {
@@ -277,39 +290,22 @@ export class FeeDelegationService {
         };
       }
 
-      // Create transaction with fee delegation
-      // The reserved field enables VIP-191 fee delegation
-      const txBody: TransactionBody = {
-        ...unsignedTx,
-        reserved: {
-          features: 1, // VIP-191 flag for fee delegation
-        },
-      };
-
-      // Create Transaction object
-      const transaction = new Transaction(txBody);
-
-      // Sign with delegator's private key
-      const delegatorSignature = Secp256k1.sign(
-        transaction.getSignatureHash(),
+      // Sign as gas payer (delegator)
+      const fullySignedTx = transaction.signAsGasPayer(
+        Address.of(senderAddress),
         this.delegatorPrivateKey
       );
 
-      // Encode transaction with both signatures
-      // User signature first, then delegator signature
-      const encodedTx = TransactionHandler.encode(transaction, [
-        Buffer.from(userSignature.startsWith('0x') ? userSignature.slice(2) : userSignature, 'hex'),
-        delegatorSignature,
-      ]);
-
-      const signedTx = '0x' + encodedTx.toString('hex');
+      // Get encoded transaction
+      const encodedTx = fullySignedTx.encoded;
+      const signedTxHex = '0x' + Buffer.from(encodedTx).toString('hex');
 
       // Check for low balance and log warning
       await this.checkAndLogLowBalance();
 
       return {
         success: true,
-        signedTransaction: signedTx,
+        signedTransaction: signedTxHex,
         vthoSpent: estimatedGas.toString(),
       };
     } catch (error) {

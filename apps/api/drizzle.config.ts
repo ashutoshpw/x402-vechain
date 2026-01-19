@@ -1,7 +1,7 @@
 import type { Config } from 'drizzle-kit'
-import { getDatabaseUrl } from './src/config/env.js'
 
-const connectionString = getDatabaseUrl()
+// For migration generation, use the DATABASE_URL directly from env
+const connectionString = process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/x402_testnet'
 
 export default {
   schema: './src/db/schema.ts',

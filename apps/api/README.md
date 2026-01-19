@@ -148,7 +148,13 @@ The API supports fee delegation using VeChain's Multi-Party Payment (MPP) protoc
 
 ### Usage
 
-To use fee delegation in the `/settle` endpoint, include both `unsignedTransaction` and `userSignature` in the payment payload:
+To use fee delegation in the `/settle` endpoint, the client must:
+
+1. Create a transaction with `reserved.features = 1` to mark it for delegation
+2. Sign the transaction as the sender using their private key
+3. Send the sender-signed transaction and sender address to the facilitator
+
+Include both `senderSignedTransaction` and `senderAddress` in the payment payload:
 
 ```json
 {
@@ -160,19 +166,16 @@ To use fee delegation in the `/settle` endpoint, include both `unsignedTransacti
 Where the decoded `paymentPayload` contains:
 ```json
 {
-  "unsignedTransaction": {
-    "chainTag": 39,
-    "blockRef": "0x...",
-    "expiration": 32,
-    "clauses": [/* ... */],
-    "gasPriceCoef": 0,
-    "gas": 21000,
-    "dependsOn": null,
-    "nonce": "0x..."
-  },
-  "userSignature": "0x..."
+  "senderSignedTransaction": "0x...",
+  "senderAddress": "0x..."
 }
 ```
+
+The facilitator will:
+1. Verify the transaction is marked for delegation
+2. Check rate limits and spending limits
+3. Add its signature as the gas payer
+4. Submit the fully-signed transaction to VeChain
 
 ### Monitoring Endpoints
 

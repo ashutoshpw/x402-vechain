@@ -247,8 +247,8 @@ x402Routes.post('/settle', zValidator('json', SettleRequestSchema), async (c) =>
         };
         return c.json(response, 500);
       }
-    } else if (parsedPayload.unsignedTransaction && parsedPayload.userSignature) {
-      // Fee delegation flow: unsigned transaction + user signature
+    } else if (parsedPayload.senderSignedTransaction && parsedPayload.senderAddress) {
+      // Fee delegation flow: transaction signed by sender, needs gas payer signature
       if (!feeDelegationService.isEnabled()) {
         const response: SettleResponse = {
           success: false,
@@ -261,8 +261,8 @@ x402Routes.post('/settle', zValidator('json', SettleRequestSchema), async (c) =>
       try {
         // Sponsor the transaction with fee delegation
         const delegationResult = await feeDelegationService.sponsorTransaction(
-          parsedPayload.unsignedTransaction,
-          parsedPayload.userSignature
+          parsedPayload.senderSignedTransaction,
+          parsedPayload.senderAddress
         );
 
         if (!delegationResult.success) {
@@ -277,7 +277,7 @@ x402Routes.post('/settle', zValidator('json', SettleRequestSchema), async (c) =>
         // Submit the fee-delegated transaction
         txHash = await veChainService.submitTransaction(delegationResult.signedTransaction!);
         vthoSpent = delegationResult.vthoSpent;
-        userAddress = parsedPayload.unsignedTransaction.clauses[0]?.to;
+        userAddress = parsedPayload.senderAddress;
       } catch (error) {
         const response: SettleResponse = {
           success: false,
@@ -316,7 +316,7 @@ x402Routes.post('/settle', zValidator('json', SettleRequestSchema), async (c) =>
       const response: SettleResponse = {
         success: false,
         networkId: matchingOption.network,
-        error: 'Payment payload must contain signedTransaction, transactionHash, or (unsignedTransaction + userSignature)',
+        error: 'Payment payload must contain signedTransaction, transactionHash, or (senderSignedTransaction + senderAddress) for fee delegation',
       };
       return c.json(response, 400);
     }
