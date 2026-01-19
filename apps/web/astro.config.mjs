@@ -8,13 +8,6 @@ export default defineConfig({
 		starlight({
 			title: 'x402.vet Documentation',
 			description: 'Documentation for the x402 payment protocol on VeChain',
-			defaultLocale: 'root',
-			locales: {
-				root: {
-					label: 'English',
-					lang: 'en',
-				},
-			},
 			social: [
 				{
 					icon: 'github',
