@@ -1,4 +1,5 @@
 ---
+import Layout from '../layouts/Layout.astro';
 import { hc } from 'hono/client'
 import type { AppType } from 'api' // Imported from our workspace!
 
@@ -6,9 +7,101 @@ import type { AppType } from 'api' // Imported from our workspace!
 const client = hc<AppType>('http://localhost:3000')
 
 // This call is fully typed. If you change the API, this errors!
-const res = await client.index.$get()
-const data = await res.json()
+let data = { message: 'x402 VeChain Facilitator' };
+try {
+  const res = await client.index.$get()
+  data = await res.json()
+} catch (e) {
+  console.log('API not running, using default message');
+}
 ---
 
-<h1>Astro + Hono</h1>
-<p>Message from API: {data.message}</p>
+<Layout>
+  <div class="home-container">
+    <h1>x402 VeChain</h1>
+    <p class="subtitle">Payment Protocol for VeChain</p>
+    
+    <div class="api-status">
+      <p><strong>API Status:</strong> {data.message}</p>
+    </div>
+
+    <div class="cta-section">
+      <h2>Try the Interactive Playground</h2>
+      <p>Test x402 payments on VeChain testnet with VeWorld or Sync2 wallet</p>
+      <a href="/playground" class="playground-link">
+        Open Payment Playground →
+      </a>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .home-container {
+    max-width: 800px;
+    margin: 4rem auto;
+    padding: 2rem;
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  h1 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+
+  .subtitle {
+    font-size: 1.2rem;
+    color: #666;
+    margin-bottom: 3rem;
+  }
+
+  .api-status {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 2rem;
+    margin-bottom: 3rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+
+  .api-status p {
+    margin: 0;
+  }
+
+  .cta-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 3rem 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+  }
+
+  .cta-section h2 {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+  }
+
+  .cta-section p {
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+  }
+
+  .playground-link {
+    display: inline-block;
+    background: white;
+    color: #667eea;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 1.1rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+
+  .playground-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+  }
+</style>

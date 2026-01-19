@@ -1,0 +1,371 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout>
+  <div class="playground-container">
+    <header class="playground-header">
+      <h1>x402 Payment Playground</h1>
+      <p>Test x402 payments on VeChain testnet</p>
+    </header>
+
+    <div class="playground-content">
+      <section class="card wallet-section">
+        <h2>Wallet Connection</h2>
+        <div id="wallet-status" class="wallet-status">
+          <span class="status-indicator disconnected"></span>
+          <span class="status-text">Not Connected</span>
+        </div>
+        <div class="wallet-buttons">
+          <button id="connect-veworld" class="btn btn-primary">Connect VeWorld</button>
+          <button id="connect-connex" class="btn btn-secondary">Connect Sync2</button>
+        </div>
+        <div id="wallet-address" class="wallet-address hidden"></div>
+        <div id="wallet-error" class="error-message hidden"></div>
+      </section>
+
+      <section class="card config-section">
+        <h2>Payment Configuration</h2>
+        <form id="payment-form" class="payment-form">
+          <div class="form-group">
+            <label for="network">Network</label>
+            <select id="network" name="network" class="form-control">
+              <option value="testnet">Testnet (eip155:100009)</option>
+              <option value="mainnet">Mainnet (eip155:100010)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="token">Token</label>
+            <select id="token" name="token" class="form-control">
+              <option value="VET">VET</option>
+              <option value="VTHO">VTHO</option>
+              <option value="VEUSD">VEUSD</option>
+              <option value="B3TR">B3TR</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="amount">Amount (in wei)</label>
+            <input type="text" id="amount" name="amount" class="form-control" 
+              placeholder="1000000000000000000" value="1000000000000000000" />
+            <small class="form-hint">1 VET = 1000000000000000000 wei</small>
+          </div>
+
+          <div class="form-group">
+            <label for="recipient">Recipient Address</label>
+            <input type="text" id="recipient" name="recipient" class="form-control" 
+              placeholder="0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb" 
+              value="0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb" />
+          </div>
+
+          <div class="form-group">
+            <label for="merchant-id">Merchant ID</label>
+            <input type="text" id="merchant-id" name="merchantId" class="form-control" 
+              placeholder="merchant123" value="merchant123" />
+          </div>
+
+          <div class="form-group">
+            <label for="merchant-url">Merchant URL (optional)</label>
+            <input type="url" id="merchant-url" name="merchantUrl" class="form-control" 
+              placeholder="https://example.com" />
+          </div>
+        </form>
+      </section>
+
+      <section class="card json-section">
+        <h2>PaymentRequirements JSON</h2>
+        <pre id="json-preview" class="json-preview"><code></code></pre>
+        <button id="copy-json" class="btn btn-outline">Copy JSON</button>
+      </section>
+
+      <section class="card actions-section">
+        <h2>Test Payment</h2>
+        <div class="action-buttons">
+          <button id="simulate-402" class="btn btn-secondary" disabled>Simulate 402 Response</button>
+          <button id="sign-payment" class="btn btn-primary" disabled>Sign & Submit Payment</button>
+        </div>
+        <div id="payment-status" class="payment-status hidden"></div>
+      </section>
+
+      <section class="card result-section hidden" id="result-section">
+        <h2>Transaction Result</h2>
+        <div id="transaction-result" class="transaction-result"></div>
+      </section>
+    </div>
+  </div>
+
+  <script is:inline src="/playground.js"></script>
+</Layout>
+
+<style>
+  .playground-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  .playground-header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .playground-header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    color: #1a1a1a;
+  }
+
+  .playground-header p {
+    font-size: 1.1rem;
+    color: #666;
+  }
+
+  .playground-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+
+  .card h2 {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    color: #333;
+  }
+
+  .wallet-section {
+    grid-column: 1 / -1;
+  }
+
+  .wallet-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: #f5f5f5;
+    border-radius: 4px;
+  }
+
+  .status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ccc;
+  }
+
+  .status-indicator.connected {
+    background: #4caf50;
+    animation: pulse 2s infinite;
+  }
+
+  .status-indicator.disconnected {
+    background: #f44336;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .wallet-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .wallet-address {
+    padding: 0.75rem;
+    background: #e3f2fd;
+    border: 1px solid #2196f3;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9rem;
+    word-break: break-all;
+  }
+
+  .btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-primary {
+    background: #2196f3;
+    color: white;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: #1976d2;
+  }
+
+  .btn-secondary {
+    background: #757575;
+    color: white;
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background: #616161;
+  }
+
+  .btn-outline {
+    background: white;
+    color: #2196f3;
+    border: 1px solid #2196f3;
+  }
+
+  .btn-outline:hover {
+    background: #e3f2fd;
+  }
+
+  .payment-form {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-group label {
+    font-weight: 500;
+    color: #333;
+  }
+
+  .form-control {
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-family: inherit;
+  }
+
+  .form-control:focus {
+    outline: none;
+    border-color: #2196f3;
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+  }
+
+  .form-hint {
+    color: #666;
+    font-size: 0.85rem;
+  }
+
+  .json-preview {
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 1rem;
+    overflow-x: auto;
+    margin-bottom: 1rem;
+  }
+
+  .json-preview code {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  .json-section {
+    grid-column: 1 / -1;
+  }
+
+  .actions-section {
+    grid-column: 1 / -1;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .payment-status {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 4px;
+  }
+
+  .payment-status.loading {
+    background: #fff3e0;
+    border: 1px solid #ff9800;
+    color: #e65100;
+  }
+
+  .payment-status.success {
+    background: #e8f5e9;
+    border: 1px solid #4caf50;
+    color: #2e7d32;
+  }
+
+  .payment-status.error {
+    background: #ffebee;
+    border: 1px solid #f44336;
+    color: #c62828;
+  }
+
+  .result-section {
+    grid-column: 1 / -1;
+  }
+
+  .transaction-result {
+    padding: 1rem;
+    background: #f5f5f5;
+    border-radius: 4px;
+  }
+
+  .transaction-result a {
+    color: #2196f3;
+    text-decoration: none;
+  }
+
+  .transaction-result a:hover {
+    text-decoration: underline;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  .error-message {
+    padding: 0.75rem;
+    background: #ffebee;
+    border: 1px solid #f44336;
+    border-radius: 4px;
+    color: #c62828;
+    margin-top: 1rem;
+  }
+
+  @media (max-width: 768px) {
+    .playground-content {
+      grid-template-columns: 1fr;
+    }
+
+    .wallet-buttons {
+      flex-direction: column;
+    }
+
+    .action-buttons {
+      flex-direction: column;
+    }
+  }
+</style>
