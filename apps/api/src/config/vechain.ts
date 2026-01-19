@@ -16,6 +16,8 @@ export const VECHAIN_NETWORKS = {
 export const VECHAIN_TOKENS = {
   VET: 'VET',
   VTHO: 'VTHO',
+  VEUSD: 'VEUSD',
+  B3TR: 'B3TR',
   CONTRACT_INTERACTION: 'CONTRACT_INTERACTION',
 };
 
@@ -27,6 +29,50 @@ export const VECHAIN_CONTRACTS = {
   // This is VeChain's official built-in energy/VTHO contract
   // Reference: https://docs.vechain.org/core-concepts/transactions/meta-transaction-features
   VTHO: '0x0000000000000000000000000000456E65726779',
+  
+  // VeUSD - VeChain stable coin
+  // Note: Contract address TBD - to be updated when available
+  VEUSD: '0x0000000000000000000000000000000000000000', // Placeholder
+  
+  // B3TR - VeChain token
+  // Note: Contract address TBD - to be updated when available
+  B3TR: '0x0000000000000000000000000000000000000000', // Placeholder
+} as const;
+
+/**
+ * VIP-180 Token Configuration
+ * Defines metadata for supported VIP-180 tokens (VeChain's ERC-20 equivalent)
+ */
+export interface TokenConfig {
+  symbol: string;
+  address: string;
+  decimals: number;
+  supportsEIP3009: boolean; // transferWithAuthorization support
+}
+
+/**
+ * VIP-180 Token Registry
+ * Maps token symbols to their configuration
+ */
+export const TOKEN_REGISTRY: Record<string, TokenConfig> = {
+  VTHO: {
+    symbol: 'VTHO',
+    address: VECHAIN_CONTRACTS.VTHO,
+    decimals: 18,
+    supportsEIP3009: false, // VTHO is built-in, uses standard transfer
+  },
+  VEUSD: {
+    symbol: 'VEUSD',
+    address: VECHAIN_CONTRACTS.VEUSD,
+    decimals: 18,
+    supportsEIP3009: false, // To be updated when contract details are available
+  },
+  B3TR: {
+    symbol: 'B3TR',
+    address: VECHAIN_CONTRACTS.B3TR,
+    decimals: 18,
+    supportsEIP3009: false, // To be updated when contract details are available
+  },
 } as const;
 
 /**

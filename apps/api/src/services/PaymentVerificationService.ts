@@ -14,7 +14,7 @@ import type { PaymentPayload, PaymentOption } from '../types/x402.js';
 import { db } from '../db/index.js';
 import { nonces } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
-import { VECHAIN_NETWORKS, VECHAIN_TOKENS, SUPPORTED_NETWORKS } from '../config/vechain.js';
+import { VECHAIN_NETWORKS, VECHAIN_TOKENS, SUPPORTED_NETWORKS, TOKEN_REGISTRY } from '../config/vechain.js';
 
 /**
  * Result of payment payload verification
@@ -65,13 +65,25 @@ export function normalizeNetworkIdentifier(network: string): string {
 
 /**
  * Validate token contract address
- * For VIP-180 tokens, ensures the address is a valid VeChain contract address
- * @param asset Token identifier ('native', 'VET', 'VTHO', or contract address)
+ * For VIP-180 tokens, ensures the address is a valid VeChain contract address or known token symbol
+ * @param asset Token identifier ('native', 'VET', 'VTHO', 'VEUSD', 'B3TR', or contract address)
  * @returns true if valid, false otherwise
  */
 export function validateTokenAddress(asset: string): boolean {
   // Native tokens
-  if (asset === 'native' || asset.toUpperCase() === VECHAIN_TOKENS.VET || asset.toUpperCase() === VECHAIN_TOKENS.VTHO) {
+  const assetUpper = asset.toUpperCase();
+  if (
+    asset === 'native' ||
+    assetUpper === VECHAIN_TOKENS.VET ||
+    assetUpper === VECHAIN_TOKENS.VTHO ||
+    assetUpper === VECHAIN_TOKENS.VEUSD ||
+    assetUpper === VECHAIN_TOKENS.B3TR
+  ) {
+    return true;
+  }
+  
+  // Check if it's a known token symbol in registry
+  if (assetUpper in TOKEN_REGISTRY) {
     return true;
   }
   
@@ -316,7 +328,7 @@ export async function verifyPaymentPayload(
         return false;
       }
       
-      // Asset matching (handle 'native' and token symbols)
+      // Asset matching (handle 'native', token symbols, and contract addresses)
       let assetMatches = false;
       const optionAssetUpper = option.asset.toUpperCase();
       const payloadAssetUpper = payload.asset.toUpperCase();
@@ -325,9 +337,22 @@ export async function verifyPaymentPayload(
         assetMatches = optionAssetUpper === 'NATIVE' || optionAssetUpper === VECHAIN_TOKENS.VET;
       } else if (payloadAssetUpper === VECHAIN_TOKENS.VTHO) {
         assetMatches = optionAssetUpper === VECHAIN_TOKENS.VTHO;
+      } else if (payloadAssetUpper === VECHAIN_TOKENS.VEUSD) {
+        assetMatches = optionAssetUpper === VECHAIN_TOKENS.VEUSD;
+      } else if (payloadAssetUpper === VECHAIN_TOKENS.B3TR) {
+        assetMatches = optionAssetUpper === VECHAIN_TOKENS.B3TR;
       } else {
-        // Contract address comparison
-        assetMatches = option.asset.toLowerCase() === payload.asset.toLowerCase();
+        // Contract address comparison - also check if option uses symbol while payload uses address
+        // or vice versa by looking up in TOKEN_REGISTRY
+        const optionAddress = optionAssetUpper in TOKEN_REGISTRY
+          ? TOKEN_REGISTRY[optionAssetUpper as keyof typeof TOKEN_REGISTRY].address.toLowerCase()
+          : option.asset.toLowerCase();
+        
+        const payloadAddress = payloadAssetUpper in TOKEN_REGISTRY
+          ? TOKEN_REGISTRY[payloadAssetUpper as keyof typeof TOKEN_REGISTRY].address.toLowerCase()
+          : payload.asset.toLowerCase();
+        
+        assetMatches = optionAddress === payloadAddress;
       }
       
       return networkMatches && recipientMatches && amountMatches && assetMatches;
