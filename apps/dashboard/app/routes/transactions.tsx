@@ -28,6 +28,8 @@ interface Filters {
   token: string
   startDate: string
   endDate: string
+  minAmount: string
+  maxAmount: string
   search: string
 }
 
@@ -43,6 +45,8 @@ export default function Transactions({ }: Route.ComponentProps) {
     token: '',
     startDate: '',
     endDate: '',
+    minAmount: '',
+    maxAmount: '',
     search: '',
   })
 
@@ -72,6 +76,8 @@ export default function Transactions({ }: Route.ComponentProps) {
       if (filters.token) params.append('token', filters.token)
       if (filters.startDate) params.append('startDate', filters.startDate)
       if (filters.endDate) params.append('endDate', filters.endDate)
+      if (filters.minAmount) params.append('minAmount', filters.minAmount)
+      if (filters.maxAmount) params.append('maxAmount', filters.maxAmount)
       if (filters.search) params.append('search', filters.search)
       
       const url = `/transactions?${params.toString()}`
@@ -203,7 +209,7 @@ export default function Transactions({ }: Route.ComponentProps) {
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Status
@@ -262,6 +268,32 @@ export default function Transactions({ }: Route.ComponentProps) {
             </div>
 
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Min Amount (Wei)
+              </label>
+              <input
+                type="text"
+                placeholder="e.g., 1000000000000000000"
+                value={filters.minAmount}
+                onChange={(e) => handleFilterChange('minAmount', e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Max Amount (Wei)
+              </label>
+              <input
+                type="text"
+                placeholder="e.g., 10000000000000000000"
+                value={filters.maxAmount}
+                onChange={(e) => handleFilterChange('maxAmount', e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Search
               </label>

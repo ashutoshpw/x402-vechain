@@ -57,8 +57,14 @@ transactionsRoutes.get('/transactions', requireAuth, async (c) => {
       conditions.push(lte(transactions.createdAt, new Date(endDate)))
     }
     
-    // Amount filtering is complex with string storage, skip for now
-    // Can be implemented with SQL casting if needed
+    // Amount filtering using SQL casting
+    if (minAmount) {
+      conditions.push(sql`CAST(${transactions.amount} AS NUMERIC) >= ${minAmount}`)
+    }
+    
+    if (maxAmount) {
+      conditions.push(sql`CAST(${transactions.amount} AS NUMERIC) <= ${maxAmount}`)
+    }
     
     if (search) {
       const searchCondition = or(
