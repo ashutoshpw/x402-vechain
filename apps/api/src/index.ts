@@ -6,6 +6,7 @@ import x402Routes from './routes/x402.js'
 import authRoutes from './routes/auth.js'
 import feeDelegationRoutes from './routes/feeDelegation.js'
 import transactionsRoutes from './routes/transactions.js'
+import analyticsRoutes from './routes/analytics.js'
 
 const app = new Hono()
 
@@ -39,7 +40,8 @@ app.get('/', (c) => {
       'GET /fee-delegation/status',
       'GET /fee-delegation/stats/:address',
       'GET /fee-delegation/total-spent',
-      'GET /transactions'
+      'GET /transactions',
+      'GET /analytics/stats'
     ]
   })
 })
@@ -55,6 +57,9 @@ app.route('/fee-delegation', feeDelegationRoutes)
 
 // Mount transactions routes
 app.route('/', transactionsRoutes)
+
+// Mount analytics routes
+app.route('/', analyticsRoutes)
 
 // Error handling
 app.onError(errorHandler)

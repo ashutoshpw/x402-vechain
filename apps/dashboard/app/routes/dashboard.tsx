@@ -45,6 +45,12 @@ export default function Dashboard({ }: Route.ComponentProps) {
             </div>
             <div className="flex items-center space-x-4">
               <a
+                href="/analytics"
+                className="text-sm text-gray-600 hover:text-gray-900"
+              >
+                Analytics
+              </a>
+              <a
                 href="/transactions"
                 className="text-sm text-gray-600 hover:text-gray-900"
               >
