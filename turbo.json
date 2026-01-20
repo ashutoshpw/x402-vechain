@@ -16,6 +16,12 @@
         "cache": false,
         "persistent": true
       },
+      "test": {
+        "outputs": ["coverage/**"]
+      },
+      "test:coverage": {
+        "outputs": ["coverage/**"]
+      },
       "lint": {
         "outputs": []
       },
