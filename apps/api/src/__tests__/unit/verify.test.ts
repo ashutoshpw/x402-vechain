@@ -287,13 +287,11 @@ describe('POST /verify', () => {
         }),
       });
 
-      // Arrays are objects in JavaScript, so they pass typeof check
-      // The test should verify that it doesn't crash, but the behavior depends on
-      // whether the array has signature/transactionHash properties
-      expect(res.status).toBe(200);
+      // Arrays should be explicitly rejected since they are not plain objects
+      expect(res.status).toBe(400);
       const data = await res.json();
-      // Since array has no signature or transactionHash, it passes basic validation
-      expect(data.isValid).toBe(true);
+      expect(data.isValid).toBe(false);
+      expect(data.invalidReason).toContain('Must be an object');
     });
 
     it('should reject empty payment options via Zod validation', async () => {

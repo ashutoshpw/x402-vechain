@@ -41,8 +41,8 @@ x402Routes.post('/verify', zValidator('json', VerifyRequestSchema), async (c) =>
       return c.json(response, 400);
     }
 
-    // Validate payload is an object
-    if (typeof parsedPayload !== 'object' || parsedPayload === null) {
+    // Validate payload is a plain object (not null, not an array)
+    if (typeof parsedPayload !== 'object' || parsedPayload === null || Array.isArray(parsedPayload)) {
       const response: VerifyResponse = {
         isValid: false,
         invalidReason: 'Invalid payment payload: Must be an object',

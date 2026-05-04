@@ -1,3 +1,9 @@
+---
+title: Testing Guide
+description: Test suite documentation for the x402 VeChain Facilitator API
+category: api
+---
+
 # Testing Guide
 
 This document describes the test suite for the x402 VeChain Facilitator API.
@@ -58,72 +64,72 @@ pnpm test src/__tests__/unit/verify.test.ts
 ## Test Coverage
 
 ### `/verify` Endpoint (13 tests)
-- ✅ Valid signed payment payload verification
-- ✅ Invalid signature rejection
-- ✅ Expired payment payload rejection
-- ✅ Wrong payment amount detection
-- ✅ Legacy transaction hash verification
-- ✅ Reverted transaction detection
-- ✅ Transaction not found handling
-- ✅ Invalid JSON payload rejection
-- ✅ Input validation (arrays, empty options)
-- ✅ Expired payment requirements
-- ✅ Future expiration time acceptance
-- ✅ Unsupported network rejection
+- Valid signed payment payload verification
+- Invalid signature rejection
+- Expired payment payload rejection
+- Wrong payment amount detection
+- Legacy transaction hash verification
+- Reverted transaction detection
+- Transaction not found handling
+- Invalid JSON payload rejection
+- Input validation (arrays, empty options)
+- Expired payment requirements
+- Future expiration time acceptance
+- Unsupported network rejection
 
 ### `/settle` Endpoint (15 tests)
-- ✅ Pre-signed transaction settlement
-- ✅ Transaction submission failure handling
-- ✅ Confirmation timeout handling
-- ✅ Payment details validation
-- ✅ Fee delegation when enabled
-- ✅ Fee delegation rejection when disabled
-- ✅ Fee delegation failure handling
-- ✅ Already submitted transaction verification
-- ✅ Reverted transaction rejection
-- ✅ Transaction verification failure
-- ✅ Invalid JSON payload rejection
-- ✅ Zod validation for empty payment options
-- ✅ Unsupported network rejection
-- ✅ Missing required fields rejection
-- ✅ Network timeout during decoding
+- Pre-signed transaction settlement
+- Transaction submission failure handling
+- Confirmation timeout handling
+- Payment details validation
+- Fee delegation when enabled
+- Fee delegation rejection when disabled
+- Fee delegation failure handling
+- Already submitted transaction verification
+- Reverted transaction rejection
+- Transaction verification failure
+- Invalid JSON payload rejection
+- Zod validation for empty payment options
+- Unsupported network rejection
+- Missing required fields rejection
+- Network timeout during decoding
 
 ### `/supported` Endpoint (3 tests)
-- ✅ Returns correct VeChain networks
-- ✅ Returns all supported tokens (VET, VTHO, VEUSD, B3TR)
-- ✅ Consistent response format
+- Returns correct VeChain networks
+- Returns all supported tokens (VET, VTHO, VEUSD, B3TR)
+- Consistent response format
 
 ### VeChain Service (19 tests + 1 skipped)
-- ✅ Transaction verification
-- ✅ Transaction hash with/without 0x prefix
-- ✅ Transaction not found error handling
-- ✅ Reverted transaction detection
-- ✅ Network error handling
-- ✅ Pre-signed transaction submission
-- ✅ Transaction submission failures
-- ✅ VET balance queries
-- ✅ VTHO balance queries
-- ✅ VIP-180 token balance queries
-- ✅ Case-insensitive token queries
-- ✅ Placeholder address validation
-- ✅ Account not found errors
-- ✅ Unknown token errors
-- ✅ Transaction confirmation after N blocks
-- ✅ Multiple confirmation waiting
-- ✅ Reverted transaction confirmation check
-- ⏭️ Timeout for transaction not found (skipped: takes 300s)
+- Transaction verification
+- Transaction hash with/without 0x prefix
+- Transaction not found error handling
+- Reverted transaction detection
+- Network error handling
+- Pre-signed transaction submission
+- Transaction submission failures
+- VET balance queries
+- VTHO balance queries
+- VIP-180 token balance queries
+- Case-insensitive token queries
+- Placeholder address validation
+- Account not found errors
+- Unknown token errors
+- Transaction confirmation after N blocks
+- Multiple confirmation waiting
+- Reverted transaction confirmation check
+- Timeout for transaction not found (skipped: takes 300s)
 
 ### Payment Verification Service (19 tests)
-- ✅ CAIP-2 network identifier parsing (eip155, vechain)
-- ✅ Invalid format rejection
-- ✅ Unsupported namespace handling
-- ✅ Testnet and mainnet reference parsing
-- ✅ Network identifier normalization
-- ✅ Token address validation (native, VET, VTHO, VEUSD, B3TR)
-- ✅ Contract address validation
-- ✅ Invalid address rejection
-- ✅ Address prefix validation
-- ✅ Address length validation
+- CAIP-2 network identifier parsing (eip155, vechain)
+- Invalid format rejection
+- Unsupported namespace handling
+- Testnet and mainnet reference parsing
+- Network identifier normalization
+- Token address validation (native, VET, VTHO, VEUSD, B3TR)
+- Contract address validation
+- Invalid address rejection
+- Address prefix validation
+- Address length validation
 
 ## Mocking Strategy
 
@@ -160,43 +166,6 @@ Tests use the following environment variables (set in `setup.ts`):
 5. **Follow naming convention**: `describe` for grouping, `it` for test cases
 6. **Test both success and failure** cases
 7. **Verify error messages** and status codes
-
-### Example Test Template
-
-```typescript
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Hono } from 'hono';
-import myRoutes from '../../routes/myRoutes.js';
-
-// Mock dependencies
-vi.mock('../../services/MyService.js', () => ({
-  myService: {
-    doSomething: vi.fn(),
-  },
-}));
-
-describe('My Feature', () => {
-  const app = new Hono();
-  app.route('/', myRoutes);
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('should do something correctly', async () => {
-    // Arrange: Setup mocks and test data
-    
-    // Act: Make the request
-    const res = await app.request('/endpoint', {
-      method: 'POST',
-      body: JSON.stringify({ data: 'test' }),
-    });
-
-    // Assert: Verify the results
-    expect(res.status).toBe(200);
-  });
-});
-```
 
 ## Continuous Integration
 
