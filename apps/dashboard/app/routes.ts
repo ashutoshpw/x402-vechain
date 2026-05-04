@@ -6,4 +6,5 @@ export default [
   route("/dashboard", "routes/dashboard.tsx"),
   route("/analytics", "routes/analytics.tsx"),
   route("/transactions", "routes/transactions.tsx"),
+  route("api-keys", "routes/api-keys.tsx"),
 ] satisfies RouteConfig;
