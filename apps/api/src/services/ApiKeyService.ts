@@ -6,7 +6,7 @@
 import crypto from 'crypto'
 import { db } from '../db/index.js'
 import { apiKeys } from '../db/schema.js'
-import { eq, and, isNull } from 'drizzle-orm'
+import { eq, and, isNull, desc } from 'drizzle-orm'
 
 const API_KEY_PREFIX = 'xv_'
 const API_KEY_LENGTH = 32 // Length of the random part (will be 32 bytes = 64 hex chars)
@@ -143,7 +143,7 @@ export async function listUserApiKeys(userId: string) {
     })
     .from(apiKeys)
     .where(eq(apiKeys.userId, userId))
-    .orderBy(apiKeys.createdAt)
+    .orderBy(desc(apiKeys.createdAt))
   
   return keys
 }
