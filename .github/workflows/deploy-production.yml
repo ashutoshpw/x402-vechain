@@ -1,0 +1,75 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false  # never cancel an in-flight production deploy
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-api:
+    name: Production — API (api.x402.vet)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: W3Dev/vercel-deploy@main
+        with:
+          vercel_token: ${{ secrets.VERCEL_TOKEN }}
+          vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID_API }}
+          package_manager: pnpm
+          working_directory: apps/api
+          # alias_domain used directly as the production alias target
+          alias_domain: api.x402.vet
+          environment: production
+
+  deploy-web:
+    name: Production — Web (x402.vet)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: W3Dev/vercel-deploy@main
+        with:
+          vercel_token: ${{ secrets.VERCEL_TOKEN }}
+          vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+          package_manager: pnpm
+          working_directory: apps/web
+          alias_domain: x402.vet
+          environment: production
+
+  deploy-dashboard:
+    name: Production — Dashboard (app.x402.vet)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: W3Dev/vercel-deploy@main
+        with:
+          vercel_token: ${{ secrets.VERCEL_TOKEN }}
+          vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel_project_id: ${{ secrets.VERCEL_PROJECT_ID_DASHBOARD }}
+          package_manager: pnpm
+          working_directory: apps/dashboard
+          alias_domain: app.x402.vet
+          environment: production
