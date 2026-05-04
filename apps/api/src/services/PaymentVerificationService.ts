@@ -11,9 +11,7 @@
 
 import { Secp256k1, Address, Keccak256, Hex } from '@vechain/sdk-core';
 import type { PaymentPayload, PaymentOption } from '../types/x402.js';
-import { db } from '../db/index.js';
-import { nonces } from '../db/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { nonceCacheService } from './NonceCacheService.js';
 import { VECHAIN_NETWORKS, VECHAIN_TOKENS, SUPPORTED_NETWORKS, TOKEN_REGISTRY } from '../config/vechain.js';
 
 /**
@@ -103,52 +101,21 @@ export function validateTokenAddress(asset: string): boolean {
 
 /**
  * Check if a nonce has been used
- * @param walletAddress Wallet address
- * @param nonce Nonce value
- * @returns true if nonce has been used, false otherwise
+ * Delegates to NonceCacheService (in-memory map → Postgres).
  */
 export async function isNonceUsed(walletAddress: string, nonce: string): Promise<boolean> {
-  try {
-    const result = await db
-      .select()
-      .from(nonces)
-      .where(
-        and(
-          eq(nonces.walletAddress, walletAddress.toLowerCase()),
-          eq(nonces.nonce, nonce)
-        )
-      )
-      .limit(1);
-    
-    return result.length > 0;
-  } catch (error) {
-    // If database is not available or query fails, reject for safety
-    throw new Error(`Nonce check failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
+  return nonceCacheService.has(nonce, walletAddress)
 }
 
 /**
  * Cache a used nonce to prevent replay attacks
- * @param walletAddress Wallet address
- * @param nonce Nonce value
- * @param validUntil Expiration timestamp
- * @throws Error if nonce already exists (race condition detected) or database error
+ * Delegates to NonceCacheService (Postgres write → warms in-memory map).
+ * @throws if nonce already exists (race condition / replay attack)
  */
 export async function cacheNonce(walletAddress: string, nonce: string, validUntil: number): Promise<void> {
-  try {
-    await db.insert(nonces).values({
-      walletAddress: walletAddress.toLowerCase(),
-      nonce,
-      expiresAt: new Date(validUntil * 1000), // Convert Unix timestamp to Date
-    });
-  } catch (error) {
-    // Check if this is a unique constraint violation (race condition)
-    const errorMessage = error instanceof Error ? error.message : '';
-    if (errorMessage.includes('unique') || errorMessage.includes('duplicate')) {
-      throw new Error('Nonce has already been used (detected concurrent request)');
-    }
-    throw new Error(`Failed to cache nonce: ${errorMessage || 'Unknown error'}`);
-  }
+  const ttlSeconds = validUntil - Math.floor(Date.now() / 1000)
+  // Ensure TTL is at least 1 second to avoid storing already-expired nonces
+  await nonceCacheService.add(nonce, walletAddress, Math.max(ttlSeconds, 1))
 }
 
 /**

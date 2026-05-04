@@ -8,6 +8,7 @@ import feeDelegationRoutes from './routes/feeDelegation.js'
 import transactionsRoutes from './routes/transactions.js'
 import analyticsRoutes from './routes/analytics.js'
 import apiKeyRoutes from './routes/apiKeys.js'
+import { nonceCacheService } from './services/NonceCacheService.js'
 
 const app = new Hono()
 
@@ -72,6 +73,23 @@ app.route('/api/keys', apiKeyRoutes)
 
 // Error handling
 app.onError(errorHandler)
+
+// ---------------------------------------------------------------------------
+// Periodic maintenance: clean up expired nonces every 5 minutes.
+// This keeps both the in-process Map and the Postgres table lean.
+// Note: In a serverless (Vercel) environment this interval only runs while
+// the function instance is warm, which is acceptable — correctness is always
+// guaranteed by the DB unique constraint and TTL-aware lookups.
+// ---------------------------------------------------------------------------
+const NONCE_CLEANUP_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
+setInterval(async () => {
+  try {
+    nonceCacheService.cleanup()
+    await nonceCacheService.purgeExpiredFromDb()
+  } catch (err) {
+    console.error('[nonce-cleanup] Failed to purge expired nonces:', err)
+  }
+}, NONCE_CLEANUP_INTERVAL_MS)
 
 export type AppType = typeof app
 
