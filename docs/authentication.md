@@ -1,8 +1,10 @@
+---
+title: "Wallet-Based Authentication"
+description: "Sign-In-With-VeChain (SIWV) authentication flow using JWT and httpOnly cookies"
+category: "auth"
+---
+
 # Wallet-Based Authentication
-
-This document explains the wallet-based authentication system implemented for the x402 VeChain Dashboard.
-
-## Overview
 
 The authentication system uses Sign-In-With-VeChain (SIWV) pattern to authenticate users via their VeChain wallet (VeWorld or Sync2). Upon successful authentication, users receive a JWT token stored in an httpOnly cookie for session management.
 
@@ -93,7 +95,6 @@ Clears the authentication cookie and invalidates the session.
 
 ### Database Schema
 ```sql
--- Users table (already exists, updated with last_login)
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   wallet_address VARCHAR(42) UNIQUE NOT NULL,
@@ -105,7 +106,6 @@ CREATE TABLE users (
   last_login TIMESTAMP
 );
 
--- Nonces table (already exists)
 CREATE TABLE nonces (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   wallet_address VARCHAR(42) NOT NULL,
@@ -140,11 +140,11 @@ import { useAuth } from '~/lib/auth'
 
 function MyComponent() {
   const { user, isAuthenticated, login, logout } = useAuth()
-  
+
   if (isAuthenticated) {
     return <div>Welcome {user.walletAddress}</div>
   }
-  
+
   return <button onClick={() => {/* trigger login */}}>Login</button>
 }
 ```
@@ -157,8 +157,8 @@ import { WalletConnector } from '~/components/WalletConnector'
 
 function LoginPage() {
   return (
-    <WalletConnector 
-      onSuccess={() => navigate('/dashboard')} 
+    <WalletConnector
+      onSuccess={() => navigate('/dashboard')}
     />
   )
 }
@@ -170,13 +170,13 @@ Routes automatically redirect to login if not authenticated:
 ```tsx
 export default function Dashboard() {
   const { isAuthenticated, isLoading } = useAuth()
-  
+
   useEffect(() => {
     if (!isAuthenticated && !isLoading) {
       navigate('/login')
     }
   }, [isAuthenticated, isLoading])
-  
+
   // Your dashboard content
 }
 ```
@@ -184,16 +184,14 @@ export default function Dashboard() {
 ## API Routes
 
 ### Public Routes
-- `POST /auth/challenge` - Generate authentication challenge
-- `POST /auth/verify` - Verify signature and issue JWT
-- `POST /auth/logout` - Clear session
+- `POST /auth/challenge` — Generate authentication challenge
+- `POST /auth/verify` — Verify signature and issue JWT
+- `POST /auth/logout` — Clear session
 
 ### Protected Routes
-- `GET /auth/me` - Get current user profile
+- `GET /auth/me` — Get current user profile
 
 ## Environment Variables
-
-Required environment variables:
 
 ```bash
 # JWT secret for token signing (minimum 32 characters)
@@ -223,31 +221,17 @@ VECHAIN_TESTNET_RPC=https://testnet.vechain.org
 4. Click "Connect VeChain Wallet"
 5. Approve connection and signature requests in Sync2
 
-## Future Enhancements
-
-1. **Proper Signature Verification**: Currently using simplified verification. Should implement full ECDSA signature recovery using VeChain SDK.
-
-2. **Session Management**: Add ability to list and revoke active sessions.
-
-3. **Multi-Factor Authentication**: Add optional 2FA for enhanced security.
-
-4. **Account Linking**: Allow linking multiple wallet addresses to single account.
-
-5. **Social Recovery**: Implement wallet recovery mechanisms.
-
 ## Troubleshooting
 
-### "VeChain wallet not found"
-- Ensure VeWorld extension is installed and enabled
-- Or ensure Sync2 desktop app is running
+**"VeChain wallet not found"**
+- Ensure VeWorld extension is installed and enabled, or Sync2 desktop app is running
 - Refresh the page
 
-### "Invalid or expired nonce"
-- Nonces expire after 15 minutes
-- Request a new challenge if expired
+**"Invalid or expired nonce"**
+- Nonces expire after 15 minutes — request a new challenge if expired
 - Check system clock is synchronized
 
-### "Signature verification failed"
+**"Signature verification failed"**
 - Ensure you're signing with the correct wallet
 - Wallet address must match the one used in challenge
 - Check that signature is complete and not truncated
