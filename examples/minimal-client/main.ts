@@ -182,7 +182,7 @@ async function fetchPremiumContent() {
         const response = await x402Fetch(`${apiUrl}/premium/content`, {
             facilitatorUrl,
             wallet,
-            maxAmount: '100000000000000000000', // Max 100 VEUSD
+            maxAmount: '100000000000000000000', // Max 100 B3TR
         });
 
         const data = await response.json();

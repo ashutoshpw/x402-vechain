@@ -389,5 +389,41 @@ describe('POST /verify', () => {
       expect(data.isValid).toBe(false);
       expect(data.invalidReason).toContain('No supported network');
     });
+
+    it('should reject a payload for the other VeChain network (per-network-deployment guarantee)', async () => {
+      // This instance is deployed against testnet only (env.VECHAIN_NETWORK
+      // is fixed to 'testnet' for the whole test run — see setup.ts), so
+      // SUPPORTED_NETWORKS is a single-element list containing only the
+      // testnet CAIP-2 id. A mainnet-network payment option must be
+      // rejected the same way an unrelated chain would be, even though
+      // 'eip155:100010' is a real, valid VeChain network id — it's just
+      // not the one this instance serves. This guards against silently
+      // accepting/settling a payment on the wrong chain.
+      const legacyPayload = createLegacyTransactionPayload(TEST_TX_HASHES.valid);
+      const paymentRequirements = createPaymentRequirements({
+        paymentOptions: [
+          createPaymentOption({
+            network: VECHAIN_NETWORKS.MAINNET,
+          }),
+        ],
+      });
+
+      const res = await app.request('/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentPayload: encodePaymentPayload(legacyPayload),
+          paymentRequirements,
+        }),
+      });
+
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.isValid).toBe(false);
+      expect(data.invalidReason).toContain('No supported network');
+      // The on-chain verification service must never be reached for a
+      // payload targeting a network this instance doesn't serve.
+      expect(veChainService.verifyTransaction).not.toHaveBeenCalled();
+    });
   });
 });

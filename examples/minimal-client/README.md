@@ -54,7 +54,7 @@ This will open the client in your browser at http://localhost:5173
 
 **Test Premium Endpoints:**
 - Click "Fetch Premium Data" - Wallet will prompt for 0.01 VET payment
-- Click "Fetch Premium Content" - Wallet will prompt for 0.05 VEUSD payment
+- Click "Fetch Premium Content" - Wallet will prompt for 0.05 B3TR payment
 
 ## How It Works
 

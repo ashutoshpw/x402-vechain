@@ -58,7 +58,7 @@ app.use(paymentMiddleware({
   },
   "POST /api/data": {
     price: "0.05",      // Different price for different route
-    token: "VEUSD",     // Different token
+    token: "B3TR",     // Different token
     network: "vechain:100009",
     payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
     facilitatorUrl: "https://facilitator.example.com"
@@ -95,7 +95,7 @@ app.use(paymentMiddleware({
 interface RoutePaymentConfig {
   // Required
   price: string;              // Decimal price (e.g., "0.01")
-  token: string;              // "VET", "VTHO", "VEUSD", "B3TR", or address
+  token: string;              // "VET", "VTHO", "B3TR", or address
   network: string;            // "vechain:100009" or "eip155:100009"
   payTo: string;              // Your wallet address
   
@@ -151,7 +151,7 @@ app.use(paymentMiddleware({
   // Routes configuration
   routes: {
     "GET /api/premium": { price: "0.01", token: "VET", ... },
-    "POST /api/data": { price: "0.05", token: "VEUSD", ... }
+    "POST /api/data": { price: "0.05", token: "B3TR", ... }
   },
   
   // Default facilitator for all routes
@@ -429,8 +429,8 @@ app.use('/api/*', paymentMiddleware({
       },
       {
         network: 'eip155:100009',
-        asset: 'VEUSD',
-        amount: '1000000',  // $1 VEUSD (6 decimals)
+        asset: 'B3TR',
+        amount: '1000000000000000000',  // 1 B3TR
         recipient: process.env.MERCHANT_ADDRESS!,
       },
       {
@@ -501,7 +501,7 @@ const supported = await getSupported('https://facilitator.example.com');
 console.log('Supported networks:', supported.networks);
 // [{
 //   network: 'eip155:100009',
-//   assets: ['VET', 'VTHO', 'VEUSD']
+//   assets: ['VET', 'VTHO', 'B3TR']
 // }]
 ```
 

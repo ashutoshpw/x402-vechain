@@ -95,7 +95,7 @@ This is a TypeScript monorepo implementing the x402 payment protocol for VeChain
 - The API implements the x402 facilitator specification
 - Core endpoints: `/verify`, `/settle`, `/supported`
 - Uses CAIP-2 format for network identifiers (e.g., `eip155:100009` for VeChain testnet)
-- Supports VeChain assets: VET, VTHO, VEUSD, B3TR
+- Supports VeChain assets: VET, VTHO, B3TR (no USD stablecoin currently — VeUSD's custodian, Prime Trust, went bankrupt in 2023)
 - See `apps/api/README.md` for detailed API documentation
 
 ### Running Individual Apps

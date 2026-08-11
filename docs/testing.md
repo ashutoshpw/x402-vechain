@@ -96,7 +96,7 @@ pnpm test src/__tests__/unit/verify.test.ts
 
 ### `/supported` Endpoint (3 tests)
 - Returns correct VeChain networks
-- Returns all supported tokens (VET, VTHO, VEUSD, B3TR)
+- Returns all supported tokens (VET, VTHO, B3TR)
 - Consistent response format
 
 ### VeChain Service (19 tests + 1 skipped)
@@ -125,7 +125,7 @@ pnpm test src/__tests__/unit/verify.test.ts
 - Unsupported namespace handling
 - Testnet and mainnet reference parsing
 - Network identifier normalization
-- Token address validation (native, VET, VTHO, VEUSD, B3TR)
+- Token address validation (native, VET, VTHO, B3TR)
 - Contract address validation
 - Invalid address rejection
 - Address prefix validation

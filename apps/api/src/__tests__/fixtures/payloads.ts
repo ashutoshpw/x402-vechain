@@ -6,6 +6,13 @@ import type { PaymentRequirements, PaymentOption, PaymentPayload } from '../../t
 import { VECHAIN_NETWORKS, VECHAIN_CONTRACTS } from '../../config/vechain.js';
 
 /**
+ * Verified mainnet contract addresses (see VECHAIN_CONTRACTS.mainnet).
+ * Kept separately here so mainnet-flavored fixtures don't depend on
+ * ACTIVE_NETWORK, which is fixed to 'testnet' for the whole test run.
+ */
+export const MAINNET_CONTRACTS = VECHAIN_CONTRACTS.mainnet;
+
+/**
  * Create a payment option for testing
  */
 export function createPaymentOption(overrides?: Partial<PaymentOption>): PaymentOption {
@@ -13,6 +20,19 @@ export function createPaymentOption(overrides?: Partial<PaymentOption>): Payment
     network: VECHAIN_NETWORKS.TESTNET,
     asset: 'VET',
     amount: '1000000000000000000', // 1 VET in wei
+    recipient: '0x1234567890123456789012345678901234567890',
+    ...overrides,
+  };
+}
+
+/**
+ * Create a mainnet payment option for testing (B3TR asset, mainnet network id).
+ */
+export function createMainnetPaymentOption(overrides?: Partial<PaymentOption>): PaymentOption {
+  return {
+    network: VECHAIN_NETWORKS.MAINNET,
+    asset: MAINNET_CONTRACTS.B3TR,
+    amount: '1000000000000000000', // 1 B3TR
     recipient: '0x1234567890123456789012345678901234567890',
     ...overrides,
   };
@@ -45,6 +65,30 @@ export function createSignedPaymentPayload(
     payTo: '0x1234567890123456789012345678901234567890',
     amount: '1000000000000000000', // 1 VET in wei
     asset: 'native',
+    nonce: `nonce-${Date.now()}-${Math.random()}`,
+    validUntil: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
+    ...overrides,
+  };
+
+  return {
+    signature: signature || '0x' + 'a'.repeat(130), // 65-byte signature in hex
+    payload: defaultPayload,
+  };
+}
+
+/**
+ * Create a mainnet signed payment payload for testing (B3TR asset, mainnet network id).
+ */
+export function createMainnetSignedPaymentPayload(
+  overrides?: Partial<PaymentPayload['payload']>,
+  signature?: string
+): PaymentPayload {
+  const defaultPayload = {
+    scheme: 'exact' as const,
+    network: VECHAIN_NETWORKS.MAINNET,
+    payTo: '0x1234567890123456789012345678901234567890',
+    amount: '1000000000000000000', // 1 B3TR
+    asset: MAINNET_CONTRACTS.B3TR,
     nonce: `nonce-${Date.now()}-${Math.random()}`,
     validUntil: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
     ...overrides,

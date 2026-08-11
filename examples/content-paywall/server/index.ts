@@ -200,7 +200,7 @@ Allow users to interact without holding VTHO:
 *You've unlocked expert-level content!*
     `.trim(),
     price: '0.05',
-    token: 'VEUSD',
+    token: 'B3TR',
   },
 ];
 
@@ -250,7 +250,7 @@ app.use('/articles/:id', async (c, next) => {
         paymentOptions: [{
           network: 'eip155:100009', // VeChain testnet
           asset: article.token,
-          // NOTE: Assuming 18 decimals for all tokens (VET, VTHO, VEUSD, B3TR all use 18 decimals)
+          // NOTE: Assuming 18 decimals for all tokens (VET, VTHO, B3TR all use 18 decimals)
           amount: (parseFloat(article.price) * 1e18).toString(),
           recipient: MERCHANT_ADDRESS,
         }],

@@ -7,7 +7,7 @@ Welcome to x402.vet! This guide will help you integrate VeChain payments into yo
 
 ## What is x402.vet?
 
-x402.vet is a payment facilitator implementing the [x402 protocol](https://github.com/coinbase/x402) for VeChain blockchain. It enables seamless cryptocurrency payments using VeChain's native tokens (VET, VTHO, VEUSD, B3TR).
+x402.vet is a payment facilitator implementing the [x402 protocol](https://github.com/coinbase/x402) for VeChain blockchain. It enables seamless cryptocurrency payments using VeChain's native tokens (VET, VTHO, B3TR).
 
 ## Key Features
 

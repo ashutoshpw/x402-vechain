@@ -235,4 +235,4 @@ Now that you've created your first payment flow, explore:
 - [Server SDK](/sdk/server) - Advanced server configuration
 - [Wallet Integration](/sdk/wallets) - Integrate different wallets
 - [Fee Delegation](/guides/fee-delegation) - Sponsor gas fees for users
-- [Token Support](/guides/tokens) - Use different tokens (VTHO, VEUSD, B3TR)
+- [Token Support](/guides/tokens) - Use different tokens (VTHO, B3TR)

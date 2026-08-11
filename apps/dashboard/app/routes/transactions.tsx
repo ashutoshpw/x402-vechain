@@ -216,7 +216,6 @@ export default function Transactions({ }: Route.ComponentProps) {
                 <option value="">All</option>
                 <option value="VET">VET</option>
                 <option value="0x0000000000000000000000000000456e65726779">VTHO</option>
-                <option value="0x170f4ba2e7c1c0b5e1b811b67e5c82226b248e77">VEUSD</option>
                 <option value="0x5ef79995FE8a89e0812330E4378eB2660ceDe699">B3TR</option>
               </select>
             </div>

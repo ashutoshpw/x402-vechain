@@ -21,7 +21,6 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 const TOKEN_NAMES: Record<string, string> = {
   'VET': 'VET',
   '0x0000000000000000000000000000456e65726779': 'VTHO',
-  '0x170f4ba2e7c1c0b5e1b811b67e5c82226b248e77': 'VEUSD',
   '0x5ef79995FE8a89e0812330E4378eB2660ceDe699': 'B3TR',
 }
 

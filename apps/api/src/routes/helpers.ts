@@ -4,7 +4,7 @@
 
 import type { PaymentOption } from '../types/x402.js';
 import type { PaymentDetails } from '../services/VeChainService.js';
-import { VECHAIN_TOKENS, TOKEN_REGISTRY } from '../config/vechain.js';
+import { VECHAIN_TOKENS, ACTIVE_TOKEN_REGISTRY } from '../config/vechain.js';
 
 /**
  * Validates that a transaction's payment details match the requirements
@@ -39,18 +39,16 @@ export function validatePaymentDetails(
       tokenMatches = optionAssetUpper === VECHAIN_TOKENS.VET || optionAssetUpper === 'NATIVE';
     } else if (paymentTokenUpper === VECHAIN_TOKENS.VTHO) {
       tokenMatches = optionAssetUpper === VECHAIN_TOKENS.VTHO;
-    } else if (paymentTokenUpper === VECHAIN_TOKENS.VEUSD) {
-      tokenMatches = optionAssetUpper === VECHAIN_TOKENS.VEUSD;
     } else if (paymentTokenUpper === VECHAIN_TOKENS.B3TR) {
       tokenMatches = optionAssetUpper === VECHAIN_TOKENS.B3TR;
     } else {
       // Contract address comparison - also check if option uses symbol while payment uses address
-      const optionAddress = optionAssetUpper in TOKEN_REGISTRY
-        ? TOKEN_REGISTRY[optionAssetUpper as keyof typeof TOKEN_REGISTRY].address.toLowerCase()
+      const optionAddress = optionAssetUpper in ACTIVE_TOKEN_REGISTRY
+        ? ACTIVE_TOKEN_REGISTRY[optionAssetUpper as keyof typeof ACTIVE_TOKEN_REGISTRY].address.toLowerCase()
         : option.asset.toLowerCase();
-      
-      const paymentAddress = paymentTokenUpper in TOKEN_REGISTRY
-        ? TOKEN_REGISTRY[paymentTokenUpper as keyof typeof TOKEN_REGISTRY].address.toLowerCase()
+
+      const paymentAddress = paymentTokenUpper in ACTIVE_TOKEN_REGISTRY
+        ? ACTIVE_TOKEN_REGISTRY[paymentTokenUpper as keyof typeof ACTIVE_TOKEN_REGISTRY].address.toLowerCase()
         : paymentDetails.token.toLowerCase();
       
       tokenMatches = optionAddress === paymentAddress;
@@ -65,5 +63,5 @@ export function validatePaymentDetails(
 /**
  * Error message for contract interaction transactions
  */
-export const CONTRACT_INTERACTION_ERROR = 
-  'Contract interaction transactions are not supported. Please use direct VET, VTHO, VEUSD, or B3TR transfers.';
+export const CONTRACT_INTERACTION_ERROR =
+  'Contract interaction transactions are not supported. Please use direct VET, VTHO, or B3TR transfers.';

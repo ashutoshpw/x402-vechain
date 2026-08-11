@@ -112,16 +112,17 @@ All errors follow a consistent format:
 
 The API uses [CAIP-2](https://github.com/ChainAgnostic/CAIPs/blob/master/CAIPs/caip-2.md) format for network identifiers:
 
-- **VeChain Testnet**: `eip155:100009`
-- **VeChain Mainnet**: `eip155:100010`
+- **VeChain Testnet**: `eip155:100009` (node: `https://testnet.vechain.org`)
+- **VeChain Mainnet**: `eip155:100010` (node: `https://mainnet.vechain.org`)
 
-Alternative format `vechain:100009` is also accepted and normalized to `eip155:100009`.
+Alternative format `vechain:100009` / `vechain:100010` is also accepted and normalized to `eip155:...`.
+
+Each facilitator instance is deployed against exactly one network, chosen by `VECHAIN_NETWORK`. A testnet-deployed instance only accepts payment options with `eip155:100009` (or `vechain:100009`); a mainnet-deployed instance only accepts `eip155:100010` (or `vechain:100010`). See [GET /supported](/api/supported) for how to discover which network a given instance serves.
 
 ## Asset Identifiers
 
 - **VET** (native): `VET` or `native`
 - **VTHO**: `VTHO`
-- **VEUSD**: `VEUSD`
 - **B3TR**: `B3TR`
 - **VIP-180 Tokens**: Contract address (e.g., `0x...`)
 

@@ -5,6 +5,8 @@ description: Get supported networks and assets
 
 Returns a list of blockchain networks and assets supported by the facilitator.
 
+The facilitator is a **per-network deployment**: each running instance serves exactly one VeChain network, selected by the `VECHAIN_NETWORK` environment variable (`testnet` or `mainnet`). `/supported` always returns a single-element `networks` array for the network that instance is deployed against — never both at once. To support both networks, run two separate instances (e.g. `facilitator-testnet.example.com` and `facilitator.example.com`), each with its own `DATABASE_URL` and `VECHAIN_NETWORK`.
+
 ## Endpoint
 
 ```
@@ -25,12 +27,28 @@ curl https://facilitator.example.com/supported
 
 ### Success (200 OK)
 
+A testnet-deployed instance (`VECHAIN_NETWORK=testnet`) responds with:
+
 ```json
 {
   "networks": [
     {
       "network": "eip155:100009",
-      "assets": ["VET", "VTHO", "VEUSD", "B3TR"]
+      "assets": ["VET", "VTHO", "B3TR"]
+    }
+  ],
+  "schemes": ["x402"]
+}
+```
+
+A mainnet-deployed instance (`VECHAIN_NETWORK=mainnet`) responds with:
+
+```json
+{
+  "networks": [
+    {
+      "network": "eip155:100010",
+      "assets": ["VET", "VTHO", "B3TR"]
     }
   ],
   "schemes": ["x402"]
@@ -48,6 +66,8 @@ curl https://facilitator.example.com/supported
 
 ## Network Details
 
+Each deployed instance only supports one of the following, per its `VECHAIN_NETWORK` setting.
+
 ### VeChain Testnet
 
 **Network ID**: `eip155:100009`
@@ -55,7 +75,6 @@ curl https://facilitator.example.com/supported
 **Supported Assets**:
 - `VET` - VeChain Token (native)
 - `VTHO` - VeThor Token
-- `VEUSD` - VeChain USD Stablecoin
 - `B3TR` - Better Token
 
 **RPC URL**: `https://testnet.vechain.org`
@@ -67,10 +86,11 @@ curl https://facilitator.example.com/supported
 **Supported Assets**:
 - `VET` - VeChain Token (native)
 - `VTHO` - VeThor Token
-- `VEUSD` - VeChain USD Stablecoin
 - `B3TR` - Better Token
 
 **RPC URL**: `https://mainnet.vechain.org`
+
+No USD stablecoin is currently supported. VeUSD's custodian, Prime Trust, went bankrupt in 2023, leaving VeChain without a healthy USD stablecoin; support will be revisited if a bridged USDC (or equivalent) becomes available.
 
 ## Usage in Client Applications
 
@@ -88,7 +108,7 @@ import { getSupported } from '@x402/vechain';
 const supported = await getSupported('https://facilitator.example.com');
 
 console.log('Supported networks:', supported.networks);
-// [{ network: 'eip155:100009', assets: ['VET', 'VTHO', 'VEUSD', 'B3TR'] }]
+// [{ network: 'eip155:100009', assets: ['VET', 'VTHO', 'B3TR'] }]
 
 // Check if VET is supported
 const hasVET = supported.networks.some(n => 

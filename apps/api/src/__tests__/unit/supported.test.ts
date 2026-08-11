@@ -38,7 +38,7 @@ describe('GET /supported', () => {
     expect(testnetNetwork).toBeDefined();
     
     // Verify assets for testnet
-    expect(testnetNetwork.assets).toEqual(['VET', 'VTHO', 'VEUSD', 'B3TR']);
+    expect(testnetNetwork.assets).toEqual(['VET', 'VTHO', 'B3TR']);
   });
 
   it('should include all supported VeChain tokens', async () => {
@@ -52,7 +52,7 @@ describe('GET /supported', () => {
     );
 
     // Verify all expected tokens are present
-    const expectedTokens = ['VET', 'VTHO', 'VEUSD', 'B3TR'];
+    const expectedTokens = ['VET', 'VTHO', 'B3TR'];
     expectedTokens.forEach(token => {
       expect(testnetNetwork.assets).toContain(token);
     });

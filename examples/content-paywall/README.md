@@ -8,7 +8,7 @@ A full-stack payment-gated content platform demonstrating x402 protocol on VeCha
 - ✅ Browse free previews
 - ✅ Pay-per-article access
 - ✅ Dynamic payment requirements
-- ✅ Multiple payment tokens (VET, VEUSD)
+- ✅ Multiple payment tokens (VET, B3TR)
 - ✅ Professional UI/UX
 - ✅ Wallet integration
 - ✅ Payment verification
@@ -45,7 +45,7 @@ A full-stack payment-gated content platform demonstrating x402 protocol on VeCha
 ### Prerequisites
 
 1. **VeChain Wallet** (VeWorld or VeChain Sync)
-2. **Testnet VET/VEUSD** from [faucet](https://faucet.vecha.in/)
+2. **Testnet VET/B3TR** from [faucet](https://faucet.vecha.in/)
 3. **Running Facilitator** (from apps/api)
 
 ### 1. Install Dependencies
@@ -191,7 +191,7 @@ The example includes 3 premium articles:
    - VeChain dApp development
    - Best practices and patterns
 
-3. **"Advanced Smart Contract Patterns"** - 0.05 VEUSD
+3. **"Advanced Smart Contract Patterns"** - 0.05 B3TR
    - Proxy patterns
    - Security considerations
    - Gas optimization
@@ -222,7 +222,7 @@ const articles = [
 Update the `price` field:
 ```typescript
 price: '0.01',  // In token units (not wei)
-token: 'VET',   // or 'VEUSD', 'VTHO', etc.
+token: 'VET',   // or 'VTHO', 'B3TR', etc.
 ```
 
 ### Styling

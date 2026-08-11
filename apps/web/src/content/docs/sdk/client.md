@@ -340,7 +340,7 @@ const payload = await createPaymentPayloadWithWallet(
     network: 'eip155:100009',           // VeChain testnet
     recipient: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
     amount: '1000000000000000000',      // 1 VET in wei
-    asset: 'VET',                       // or 'VTHO', 'VEUSD', '0x...'
+    asset: 'VET',                       // or 'VTHO', 'B3TR', '0x...'
     validityDuration: 300,              // Optional: 5 minutes (default)
   },
   wallet  // Your WalletAdapter instance
@@ -445,9 +445,10 @@ Both formats are supported and normalized internally.
 |-------|------------|--------|
 | VET (native) | `'VET'` or `'native'` | Native token |
 | VTHO | `'VTHO'` | Built-in token |
-| VEUSD | `'VEUSD'` | Stablecoin |
 | B3TR | `'B3TR'` | VeBetterDAO token |
 | Custom VIP-180 | `'0x...'` | Contract address |
+
+No USD stablecoin is currently supported. VeUSD's custodian, Prime Trust, went bankrupt in 2023, leaving VeChain without a healthy USD stablecoin; support will be revisited if a bridged USDC (or equivalent) becomes available.
 
 ## Amount Handling
 

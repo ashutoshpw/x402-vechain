@@ -99,7 +99,7 @@ try {
     },
     "POST /api/data": {
       price: "0.5",
-      token: "VEUSD",
+      token: "B3TR",
       network: "vechain:100009",
       payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
     },

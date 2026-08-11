@@ -1,6 +1,8 @@
 # x402 VeChain Facilitator
 
-A TypeScript monorepo implementing the [x402 payment protocol](https://github.com/coinbase/x402/blob/main/specs/facilitator.md) for VeChain blockchain. This project enables seamless cryptocurrency payment facilitation using VeChain's native tokens (VET, VTHO, VEUSD, B3TR) with support for testnet and mainnet environments.
+A TypeScript monorepo implementing the [x402 payment protocol](https://github.com/coinbase/x402/blob/main/specs/facilitator.md) for VeChain blockchain. This project enables seamless cryptocurrency payment facilitation using VeChain's native tokens (VET, VTHO, B3TR) with support for testnet and mainnet environments.
+
+> **Note on stablecoins:** VeChain currently has no actively supported USD stablecoin — VeUSD's custodian, Prime Trust, went bankrupt in 2023, and the token is effectively dead. Stablecoin support will be revisited if a bridged USDC (or equivalent) becomes available on VeChain.
 
 ## 🏗️ Project Structure
 
@@ -109,14 +111,25 @@ pnpm --filter web build            # Build web for production
 The API implements the x402 facilitator specification with the following endpoints:
 
 ### `GET /supported`
-Returns supported VeChain networks and assets.
+Returns supported VeChain networks and assets. Each running instance is deployed against exactly one network (see [Deployment Model](#-deployment-model) below), so the response always contains a single network entry matching that instance's `VECHAIN_NETWORK`.
 
-**Response:**
+**Response (testnet instance):**
 ```json
 {
   "networks": [{
     "network": "eip155:100009",
-    "assets": ["VET", "VTHO", "VEUSD", "B3TR"]
+    "assets": ["VET", "VTHO", "B3TR"]
+  }],
+  "schemes": ["x402"]
+}
+```
+
+**Response (mainnet instance):**
+```json
+{
+  "networks": [{
+    "network": "eip155:100010",
+    "assets": ["VET", "VTHO", "B3TR"]
   }],
   "schemes": ["x402"]
 }
@@ -130,18 +143,37 @@ Submits payment to VeChain and waits for confirmation.
 
 For detailed API documentation, see [apps/api/README.md](/apps/api/README.md).
 
+## 🌍 Deployment Model
+
+The API is a **per-network deployment**: one running instance serves exactly one VeChain network, selected by `VECHAIN_NETWORK` (`testnet` or `mainnet`). There is no multi-network runtime — no network column on the nonces table, no switching networks per-request. `SUPPORTED_NETWORKS` (and the `/supported` response) is derived from `VECHAIN_NETWORK` and is always a single-element list.
+
+To serve both networks, run two separate instances, each with its own `VECHAIN_NETWORK` and database:
+
+```bash
+# Testnet instance
+VECHAIN_NETWORK=testnet
+DATABASE_URL_TESTNET=postgresql://user:password@localhost:5432/x402_testnet
+
+# Mainnet instance
+VECHAIN_NETWORK=mainnet
+DATABASE_URL_MAINNET=postgresql://user:password@localhost:5432/x402_mainnet
+```
+
 ## ⚙️ Environment Configuration
 
 Key environment variables (see `.env.example` for complete list):
 
 ```bash
-# VeChain Network
+# VeChain Network — determines which single network this instance serves
 VECHAIN_NETWORK=testnet              # or 'mainnet'
 VECHAIN_TESTNET_RPC=https://testnet.vechain.org
 VECHAIN_MAINNET_RPC=https://mainnet.vechain.org
 
 # Database
 DATABASE_URL=postgresql://user:password@localhost:5432/x402_testnet
+# Optional network-specific overrides (used instead of DATABASE_URL when set):
+DATABASE_URL_TESTNET=postgresql://user:password@localhost:5432/x402_testnet
+DATABASE_URL_MAINNET=postgresql://user:password@localhost:5432/x402_mainnet
 
 # Fee Delegation (optional)
 FEE_DELEGATION_ENABLED=false
@@ -282,14 +314,24 @@ This is a monorepo managed with pnpm and Turbo. When contributing:
 
 ## 🌟 Supported Networks & Assets
 
-### VeChain Testnet (eip155:100009)
-- VET (VeChain Token)
-- VTHO (VeThor Token)
-- VEUSD (VeChain USD Stablecoin)
-- B3TR (Better Token)
+Each deployed instance supports one of the two networks below, per its `VECHAIN_NETWORK` setting. VET is native (no contract address); VTHO and B3TR are VIP-180 tokens.
 
-### VeChain Mainnet (eip155:100010)
-- VET (VeChain Token)
-- VTHO (VeThor Token)
-- VEUSD (VeChain USD Stablecoin)
-- B3TR (Better Token)
+### VeChain Testnet (`eip155:100009`)
+
+| Asset | Contract Address |
+|-------|-------------------|
+| VET | native |
+| VTHO | `0x0000000000000000000000000000456E65726779` |
+| B3TR | `0x026771d1be764467f8bdb78bb230df10c924b00d` |
+
+### VeChain Mainnet (`eip155:100010`)
+
+| Asset | Contract Address |
+|-------|-------------------|
+| VET | native |
+| VTHO | `0x0000000000000000000000000000456E65726779` |
+| B3TR | `0x5ef79995FE8a89e0812330E4378eB2660ceDe699` |
+
+VTHO is VeChain's built-in energy contract and shares the same address on both networks; B3TR is a deployed VIP-180 token with a different address per network.
+
+No USD stablecoin is currently supported. VeUSD's custodian, Prime Trust, went bankrupt in 2023, leaving VeChain without a healthy USD stablecoin; support will be revisited if a bridged USDC (or equivalent) becomes available.

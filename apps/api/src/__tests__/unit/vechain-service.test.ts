@@ -14,7 +14,7 @@ import {
   createMockContractCallResult,
 } from '../mocks/vechain.js';
 import { TEST_ADDRESSES, TEST_TX_HASHES, TEST_AMOUNTS } from '../fixtures/payloads.js';
-import { VECHAIN_CONTRACTS } from '../../config/vechain.js';
+import { ACTIVE_CONTRACTS } from '../../config/vechain.js';
 
 // Mock the VeChain SDK
 vi.mock('@vechain/sdk-network', () => {
@@ -214,7 +214,7 @@ describe('VeChainService', () => {
       const mockResult = createMockContractCallResult(tokenBalance);
       mockThorClient.contracts.executeCall.mockResolvedValue(mockResult);
 
-      const balance = await service.getBalance(TEST_ADDRESSES.sender, VECHAIN_CONTRACTS.VTHO);
+      const balance = await service.getBalance(TEST_ADDRESSES.sender, ACTIVE_CONTRACTS.VTHO);
 
       expect(balance).toBe(tokenBalance);
       expect(mockThorClient.contracts.executeCall).toHaveBeenCalled();

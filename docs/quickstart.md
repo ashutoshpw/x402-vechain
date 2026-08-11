@@ -73,7 +73,7 @@ app.use(paymentMiddleware({
   },
   "POST /api/data": {
     price: "0.05",
-    token: "VEUSD",
+    token: "B3TR",
     network: "vechain:100009",
     payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
     facilitatorUrl: "https://facilitator.example.com"
@@ -148,8 +148,8 @@ app.use(paymentMiddleware({
     price: "10", token: "VTHO",
     network: "vechain:100009", payTo: MERCHANT_ADDRESS, facilitatorUrl: FACILITATOR_URL,
   },
-  "GET /stable-content": {
-    price: "0.5", token: "VEUSD",
+  "GET /b3tr-content": {
+    price: "0.5", token: "B3TR",
     network: "vechain:100009", payTo: MERCHANT_ADDRESS, facilitatorUrl: FACILITATOR_URL,
   },
 }));
@@ -182,6 +182,8 @@ USER_PRIVATE_KEY=your-private-key-here
 |---------|-----------|
 | VeChain Testnet | `eip155:100009` or `vechain:100009` |
 | VeChain Mainnet | `eip155:100010` or `vechain:100010` |
+
+The facilitator is a per-network deployment: each running instance is configured for exactly one network via `VECHAIN_NETWORK` and only accepts payment options for that network's identifier. Point `facilitatorUrl` and `network` at a matching pair — e.g. a testnet facilitator with `network: "vechain:100009"`, or a mainnet facilitator with `network: "vechain:100010"`. Mixing them (a mainnet network id against a testnet facilitator, or vice versa) is rejected with "No supported network".
 
 ## Amount Format
 

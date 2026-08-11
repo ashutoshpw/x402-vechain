@@ -28,7 +28,7 @@ app.use(paymentMiddleware({
   },
   "POST /api/data": {
     price: "0.05",
-    token: "VEUSD",
+    token: "B3TR",
     network: "vechain:100009",
     payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
   },
@@ -107,11 +107,11 @@ async function testRequest(method, path, headers = {}) {
     if (res4.status === 402) {
       const paymentHeader4 = res4.headers.get('X-Payment-Required');
       const requirements4 = JSON.parse(paymentHeader4);
-      if (requirements4.paymentOptions[0].asset === 'VEUSD' &&
-          requirements4.paymentOptions[0].amount === '50000000000000000') { // 0.05 VEUSD
+      if (requirements4.paymentOptions[0].asset === 'B3TR' &&
+          requirements4.paymentOptions[0].amount === '50000000000000000') { // 0.05 B3TR
         console.log('✅ Different route has different payment requirements');
         console.log(`   Asset: ${requirements4.paymentOptions[0].asset}`);
-        console.log(`   Amount: ${requirements4.paymentOptions[0].amount} wei (0.05 VEUSD)`);
+        console.log(`   Amount: ${requirements4.paymentOptions[0].amount} wei (0.05 B3TR)`);
       } else {
         throw new Error('Payment requirements do not match route config');
       }

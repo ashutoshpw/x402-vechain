@@ -284,14 +284,14 @@ All examples support:
 ### VeChain Testnet (eip155:100009)
 - **VET** - Native token
 - **VTHO** - Gas token
-- **VEUSD** - Stablecoin
 - **B3TR** - Better token
 
 ### VeChain Mainnet (eip155:100010)
 - **VET** - Native token  
 - **VTHO** - Gas token
-- **VEUSD** - Stablecoin
 - **B3TR** - Better token
+
+No USD stablecoin is currently supported — VeUSD's custodian, Prime Trust, went bankrupt in 2023. Support will be revisited if a bridged USDC (or equivalent) becomes available on VeChain.
 
 ## Troubleshooting
 

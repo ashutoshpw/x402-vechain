@@ -16,9 +16,8 @@ import { Address, type Hex, type TransactionClause } from '@vechain/sdk-core';
 import { env, getVeChainRpcUrl } from '../config/env.js';
 import {
   VECHAIN_TOKENS,
-  VECHAIN_CONTRACTS,
   VECHAIN_TIMING,
-  TOKEN_REGISTRY,
+  ACTIVE_TOKEN_REGISTRY,
   isPlaceholderAddress,
   getTokenSymbolFromAddress,
 } from '../config/vechain.js';
@@ -131,7 +130,7 @@ export class VeChainService {
   /**
    * Get balance for an address and token
    * @param address Wallet address to check
-   * @param token Token symbol ('VET', 'VTHO', 'VEUSD', 'B3TR') or contract address
+   * @param token Token symbol ('VET', 'VTHO', 'B3TR') or contract address
    * @returns Balance as bigint
    * @throws Error if balance query fails
    */
@@ -151,9 +150,9 @@ export class VeChainService {
 
         // Check if token is a known symbol or a contract address
         const tokenUpper = token.toUpperCase();
-        if (tokenUpper in TOKEN_REGISTRY) {
-          contractAddress = TOKEN_REGISTRY[tokenUpper as keyof typeof TOKEN_REGISTRY].address;
-          
+        if (tokenUpper in ACTIVE_TOKEN_REGISTRY) {
+          contractAddress = ACTIVE_TOKEN_REGISTRY[tokenUpper as keyof typeof ACTIVE_TOKEN_REGISTRY].address;
+
           // Validate that the contract address is not a placeholder
           if (isPlaceholderAddress(contractAddress)) {
             throw new Error(
@@ -293,7 +292,7 @@ export class VeChainService {
       const firstClause = tx.clauses[0];
       
       // Determine token type based on clause
-      let token = VECHAIN_TOKENS.VET;
+      let token: string = VECHAIN_TOKENS.VET;
       let amount = BigInt(0);
       let to = firstClause.to || '0x0000000000000000000000000000000000000000';
       

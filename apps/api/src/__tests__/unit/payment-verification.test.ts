@@ -8,7 +8,7 @@ import {
   normalizeNetworkIdentifier,
   validateTokenAddress,
 } from '../../services/PaymentVerificationService.js';
-import { VECHAIN_NETWORKS, VECHAIN_TOKENS, VECHAIN_CONTRACTS } from '../../config/vechain.js';
+import { VECHAIN_NETWORKS, VECHAIN_TOKENS, ACTIVE_CONTRACTS } from '../../config/vechain.js';
 
 describe('PaymentVerificationService', () => {
   describe('parseCAIP2Network', () => {
@@ -94,12 +94,6 @@ describe('PaymentVerificationService', () => {
       expect(validateTokenAddress(VECHAIN_TOKENS.VTHO)).toBe(true);
     });
 
-    it('should validate VEUSD token', () => {
-      expect(validateTokenAddress('VEUSD')).toBe(true);
-      expect(validateTokenAddress('veusd')).toBe(true);
-      expect(validateTokenAddress(VECHAIN_TOKENS.VEUSD)).toBe(true);
-    });
-
     it('should validate B3TR token', () => {
       expect(validateTokenAddress('B3TR')).toBe(true);
       expect(validateTokenAddress('b3tr')).toBe(true);
@@ -107,7 +101,7 @@ describe('PaymentVerificationService', () => {
     });
 
     it('should validate VTHO contract address', () => {
-      expect(validateTokenAddress(VECHAIN_CONTRACTS.VTHO)).toBe(true);
+      expect(validateTokenAddress(ACTIVE_CONTRACTS.VTHO)).toBe(true);
     });
 
     it('should validate valid contract addresses', () => {

@@ -38,7 +38,7 @@ app.use(paymentMiddleware({
   },
   "POST /api/data": {
     price: "0.05",
-    token: "VEUSD",
+    token: "B3TR",
     network: "vechain:100009",
     payTo: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
   },
@@ -118,7 +118,7 @@ async function runTests() {
       if (paymentHeader) {
         const requirements = JSON.parse(paymentHeader);
         console.log(`   Token: ${requirements.paymentOptions[0].asset}`);
-        console.log(`   Amount: ${requirements.paymentOptions[0].amount} wei (0.05 VEUSD)\n`);
+        console.log(`   Amount: ${requirements.paymentOptions[0].amount} wei (0.05 B3TR)\n`);
       }
     } else {
       throw new Error(`Expected 402, got ${res3.status}`);

@@ -32,8 +32,8 @@ function example1BasicRouteConfig() {
       facilitatorUrl: FACILITATOR_URL,
     },
     "POST /api/data": {
-      price: "0.05",        // 0.05 VEUSD
-      token: "VEUSD",
+      price: "0.05",        // 0.05 B3TR
+      token: "B3TR",
       network: "vechain:100009",
       payTo: MERCHANT_ADDRESS,
       facilitatorUrl: FACILITATOR_URL,
@@ -117,8 +117,8 @@ function example3MultiTokenRoutes() {
       facilitatorUrl: FACILITATOR_URL,
     },
     "GET /content/premium": {
-      price: "1",           // 1 VEUSD (stablecoin)
-      token: "VEUSD",
+      price: "1",           // 1 B3TR
+      token: "B3TR",
       network: "vechain:100009",
       payTo: MERCHANT_ADDRESS,
       facilitatorUrl: FACILITATOR_URL,

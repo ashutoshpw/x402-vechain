@@ -434,6 +434,38 @@ describe('POST /settle', () => {
       expect(data.error).toContain('No supported network');
     });
 
+    it('should reject a payload for the other VeChain network (per-network-deployment guarantee)', async () => {
+      // This instance is deployed against testnet only (env.VECHAIN_NETWORK
+      // is fixed to 'testnet' for the whole test run — see setup.ts). A
+      // mainnet-network payment option is a real, valid VeChain network id
+      // that this instance simply does not serve, so it must be rejected
+      // the same way an unrelated chain would be — guarding against
+      // silently settling a payment on the wrong chain.
+      const payload = createPreSignedTransactionPayload('0xabcdef');
+      const paymentRequirements = createPaymentRequirements({
+        paymentOptions: [
+          createPaymentOption({
+            network: VECHAIN_NETWORKS.MAINNET,
+          }),
+        ],
+      });
+
+      const res = await app.request('/settle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentPayload: encodePaymentPayload(payload),
+          paymentRequirements,
+        }),
+      });
+
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.success).toBe(false);
+      expect(data.error).toContain('No supported network');
+      expect(veChainService.submitTransaction).not.toHaveBeenCalled();
+    });
+
     it('should reject payload without required fields', async () => {
       const emptyPayload = encodePaymentPayload({});
       const paymentRequirements = createPaymentRequirements();

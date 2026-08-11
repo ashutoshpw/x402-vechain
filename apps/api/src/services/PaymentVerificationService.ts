@@ -12,7 +12,7 @@
 import { Secp256k1, Address, Keccak256, Hex } from '@vechain/sdk-core';
 import type { PaymentPayload, PaymentOption } from '../types/x402.js';
 import { nonceCacheService } from './NonceCacheService.js';
-import { VECHAIN_NETWORKS, VECHAIN_TOKENS, SUPPORTED_NETWORKS, TOKEN_REGISTRY } from '../config/vechain.js';
+import { VECHAIN_TOKENS, SUPPORTED_NETWORKS, ACTIVE_TOKEN_REGISTRY } from '../config/vechain.js';
 
 /**
  * Result of payment payload verification
@@ -64,7 +64,7 @@ export function normalizeNetworkIdentifier(network: string): string {
 /**
  * Validate token contract address
  * For VIP-180 tokens, ensures the address is a valid VeChain contract address or known token symbol
- * @param asset Token identifier ('native', 'VET', 'VTHO', 'VEUSD', 'B3TR', or contract address)
+ * @param asset Token identifier ('native', 'VET', 'VTHO', 'B3TR', or contract address)
  * @returns true if valid, false otherwise
  */
 export function validateTokenAddress(asset: string): boolean {
@@ -74,14 +74,13 @@ export function validateTokenAddress(asset: string): boolean {
     asset === 'native' ||
     assetUpper === VECHAIN_TOKENS.VET ||
     assetUpper === VECHAIN_TOKENS.VTHO ||
-    assetUpper === VECHAIN_TOKENS.VEUSD ||
     assetUpper === VECHAIN_TOKENS.B3TR
   ) {
     return true;
   }
-  
+
   // Check if it's a known token symbol in registry
-  if (assetUpper in TOKEN_REGISTRY) {
+  if (assetUpper in ACTIVE_TOKEN_REGISTRY) {
     return true;
   }
   
@@ -304,19 +303,17 @@ export async function verifyPaymentPayload(
         assetMatches = optionAssetUpper === 'NATIVE' || optionAssetUpper === VECHAIN_TOKENS.VET;
       } else if (payloadAssetUpper === VECHAIN_TOKENS.VTHO) {
         assetMatches = optionAssetUpper === VECHAIN_TOKENS.VTHO;
-      } else if (payloadAssetUpper === VECHAIN_TOKENS.VEUSD) {
-        assetMatches = optionAssetUpper === VECHAIN_TOKENS.VEUSD;
       } else if (payloadAssetUpper === VECHAIN_TOKENS.B3TR) {
         assetMatches = optionAssetUpper === VECHAIN_TOKENS.B3TR;
       } else {
         // Contract address comparison - also check if option uses symbol while payload uses address
-        // or vice versa by looking up in TOKEN_REGISTRY
-        const optionAddress = optionAssetUpper in TOKEN_REGISTRY
-          ? TOKEN_REGISTRY[optionAssetUpper as keyof typeof TOKEN_REGISTRY].address.toLowerCase()
+        // or vice versa by looking up in ACTIVE_TOKEN_REGISTRY
+        const optionAddress = optionAssetUpper in ACTIVE_TOKEN_REGISTRY
+          ? ACTIVE_TOKEN_REGISTRY[optionAssetUpper as keyof typeof ACTIVE_TOKEN_REGISTRY].address.toLowerCase()
           : option.asset.toLowerCase();
-        
-        const payloadAddress = payloadAssetUpper in TOKEN_REGISTRY
-          ? TOKEN_REGISTRY[payloadAssetUpper as keyof typeof TOKEN_REGISTRY].address.toLowerCase()
+
+        const payloadAddress = payloadAssetUpper in ACTIVE_TOKEN_REGISTRY
+          ? ACTIVE_TOKEN_REGISTRY[payloadAssetUpper as keyof typeof ACTIVE_TOKEN_REGISTRY].address.toLowerCase()
           : payload.asset.toLowerCase();
         
         assetMatches = optionAddress === payloadAddress;

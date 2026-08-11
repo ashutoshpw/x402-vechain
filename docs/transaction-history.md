@@ -74,7 +74,6 @@ Located at `/transactions` in the dashboard (`apps/dashboard/app/routes/transact
 |----------------------|--------|
 | `null` | VET (native) |
 | `0x0000000000000000000000000000456e65726779` | VTHO |
-| `0x170f4ba2e7c1c0b5e1b811b67e5c82226b248e77` | VEUSD |
 | `0x5ef79995FE8a89e0812330E4378eB2660ceDe699` | B3TR |
 
 ## Explorer URLs

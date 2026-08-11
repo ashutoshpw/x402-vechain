@@ -29,7 +29,7 @@ export interface PaymentVerification {
 export interface RoutePaymentConfig {
   /** Price in token units (will be converted to wei) */
   price: string;
-  /** Token symbol (VET, VTHO, VEUSD, B3TR, or contract address) */
+  /** Token symbol (VET, VTHO, B3TR, B3TR, or contract address) */
   token: string;
   /** Network identifier (CAIP-2 format or 'vechain:chainId') */
   network: string;
@@ -46,7 +46,7 @@ export interface RoutePaymentConfig {
 /**
  * Route-based payment configuration
  * Maps route patterns to payment configs
- * Example: { "GET /api/premium": { price: "0.01", token: "VEUSD", ... } }
+ * Example: { "GET /api/premium": { price: "0.01", token: "B3TR", ... } }
  */
 export type RoutePaymentMap = Record<string, RoutePaymentConfig>;
 
@@ -404,7 +404,7 @@ function isRoutePaymentConfig(value: unknown): value is RoutePaymentConfig {
  * app.use(paymentMiddleware({
  *   "GET /api/premium": {
  *     price: "0.01",
- *     token: "VEUSD",
+ *     token: "B3TR",
  *     network: "vechain:100009",
  *     payTo: "0xYourWallet..."
  *   }

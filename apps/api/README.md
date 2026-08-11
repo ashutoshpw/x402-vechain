@@ -11,8 +11,9 @@ This service provides the minimal x402 protocol scaffolding for VeChain. It expo
 - VeChain Mainnet (`vechain:100010`)
   - VET
   - VTHO
-  - VEUSD
   - B3TR
+
+No USD stablecoin is currently supported. VeUSD's custodian, Prime Trust, went bankrupt in 2023, leaving VeChain without a healthy USD stablecoin; support will be revisited if a bridged USDC (or equivalent) becomes available.
 
 ## Development
 
@@ -128,7 +129,7 @@ Returns supported networks and assets.
 {
   "networks": [{
     "network": "eip155:100009",
-    "assets": ["VET", "VTHO", "VEUSD", "B3TR"]
+    "assets": ["VET", "VTHO", "B3TR"]
   }],
   "schemes": ["x402"]
 }

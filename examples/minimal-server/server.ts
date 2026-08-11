@@ -24,7 +24,7 @@ app.get('/', (c) => {
       '/': 'This endpoint (free)',
       '/public/hello': 'Free greeting (free)',
       '/premium/data': 'Premium data endpoint (requires 0.01 VET)',
-      '/premium/content': 'Premium content endpoint (requires 0.05 VEUSD)',
+      '/premium/content': 'Premium content endpoint (requires 0.05 B3TR)',
     },
   });
 });
@@ -44,10 +44,10 @@ app.use(paymentMiddleware({
     payTo: MERCHANT_ADDRESS,
     facilitatorUrl: FACILITATOR_URL,
   },
-  // Premium content endpoint - costs 0.05 VEUSD
+  // Premium content endpoint - costs 0.05 B3TR
   "GET /premium/content": {
     price: "0.05",
-    token: "VEUSD",
+    token: "B3TR",
     network: "vechain:100009",
     payTo: MERCHANT_ADDRESS,
     facilitatorUrl: FACILITATOR_URL,
@@ -69,7 +69,7 @@ app.get('/premium/data', (c) => {
   });
 });
 
-// Protected endpoint - requires payment of 0.05 VEUSD
+// Protected endpoint - requires payment of 0.05 B3TR
 app.get('/premium/content', (c) => {
   const verification = c.get('paymentVerification') as any;
   
@@ -100,7 +100,7 @@ Endpoints:
   • GET /                    - Server info (free)
   • GET /public/hello        - Greeting (free)
   • GET /premium/data        - Premium data (0.01 VET)
-  • GET /premium/content     - Premium content (0.05 VEUSD)
+  • GET /premium/content     - Premium content (0.05 B3TR)
 
 Configuration:
   • Facilitator: ${FACILITATOR_URL}

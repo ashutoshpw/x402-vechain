@@ -122,7 +122,7 @@ Expected response:
 {
   "networks": [{
     "network": "eip155:100009",
-    "assets": ["VET", "VTHO", "VEUSD", "B3TR"]
+    "assets": ["VET", "VTHO", "B3TR"]
   }],
   "schemes": ["x402"]
 }

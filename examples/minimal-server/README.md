@@ -6,7 +6,7 @@ A minimal example demonstrating how to create a payment-protected API endpoint u
 
 - ✅ Simple Hono server setup
 - ✅ Route-based payment configuration (the easiest approach)
-- ✅ Multiple payment options (VET and VEUSD)
+- ✅ Multiple payment options (VET and B3TR)
 - ✅ Free and paid endpoints in the same server
 - ✅ Automatic payment verification
 
@@ -52,7 +52,7 @@ The server will start on http://localhost:3001
 ### Payment-Protected Endpoints
 
 - **GET /premium/data** - Requires payment of 0.01 VET
-- **GET /premium/content** - Requires payment of 0.05 VEUSD
+- **GET /premium/content** - Requires payment of 0.05 B3TR
 
 ## Testing
 
@@ -147,7 +147,7 @@ Support different payment tokens for different endpoints:
 ```typescript
 {
   "GET /cheap": { price: "0.01", token: "VET" },
-  "GET /expensive": { price: "10", token: "VEUSD" }
+  "GET /expensive": { price: "10", token: "B3TR" }
 }
 ```
 
