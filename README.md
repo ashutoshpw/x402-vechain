@@ -2,7 +2,40 @@
 
 A TypeScript monorepo implementing the [x402 payment protocol](https://github.com/coinbase/x402/blob/main/specs/facilitator.md) for VeChain blockchain. This project enables seamless cryptocurrency payment facilitation using VeChain's native tokens (VET, VTHO, B3TR) with support for testnet and mainnet environments.
 
+[x402](https://github.com/coinbase/x402) revives the HTTP `402 Payment Required` status code as an open protocol for machine-to-machine payments: a client hits an endpoint, the server replies `402` with the price and payment details instead of data, the client attaches a signed payment payload and retries, and the server releases the response. No accounts, no API keys, no subscriptions — just pay-per-request, which is what lets AI agents and other automated clients transact on their own.
+
+This repo is a **community implementation of x402 for VeChainThor** (not affiliated with or endorsed by the x402 Foundation). It provides everything needed to accept or make x402 payments on VeChain: a facilitator REST API (`/verify`, `/settle`, `/supported`) that validates and settles payments on-chain, an `@x402/vechain` SDK with a client `fetch` wrapper and server middleware, a dashboard, and runnable examples. It's for two audiences: developers who want to charge per-request for an API or piece of content, and developers building agents or clients that need to pay for such APIs on VeChain.
+
+VeChain is a good fit for this because of **VIP-191 fee delegation**: a facilitator or sponsor can pay the VTHO gas cost of a transaction on behalf of the payer, so an AI agent (or any client) can complete a payment while holding zero gas tokens — it only needs the asset it's paying with. Standard EVM chains have no equivalent, so x402 clients there must always hold native gas. The facilitator supports payments in VET, VTHO, and B3TR (VeBetterDAO's token), and runs one instance per network (testnet or mainnet, selected via `VECHAIN_NETWORK`). Because VIP-180 tokens have no `transferWithAuthorization` (EIP-3009), settlement here uses payer-signed transactions with optional fee delegation, rather than the facilitator redeeming a pre-signed authorization.
+
 > **Note on stablecoins:** VeChain currently has no actively supported USD stablecoin — VeUSD's custodian, Prime Trust, went bankrupt in 2023, and the token is effectively dead. Stablecoin support will be revisited if a bridged USDC (or equivalent) becomes available on VeChain.
+
+### How a payment flows
+
+1. **Client** requests a paid resource from the **server** (e.g. `GET /api/data`).
+2. **Server** responds `402 Payment Required` with the accepted assets, price, and recipient.
+3. **Client** signs a payment payload for one of the accepted options and retries the request with it attached.
+4. **Server** calls the **facilitator**'s `/verify` to check the payment payload is valid before doing any work.
+5. **Server** serves the response, then calls the facilitator's `/settle` to submit the payment on-chain (optionally fee-delegated).
+6. **Facilitator** broadcasts the transaction to VeChainThor and confirms settlement back to the server.
+
+```mermaid
+sequenceDiagram
+    participant C as Client (agent)
+    participant S as Server (API)
+    participant F as Facilitator
+
+    C->>S: GET /resource
+    S-->>C: 402 Payment Required (price, assets)
+    C->>C: Sign payment payload
+    C->>S: GET /resource + payment payload
+    S->>F: POST /verify
+    F-->>S: valid
+    S-->>C: 200 OK (resource)
+    S->>F: POST /settle
+    F->>F: Submit tx to VeChainThor (fee-delegated)
+    F-->>S: settled
+```
 
 ## 🏗️ Project Structure
 
